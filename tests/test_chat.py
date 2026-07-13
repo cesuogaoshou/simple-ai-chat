@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from ai_chat.chat import (
     SYSTEM_PROMPT,
     GenerationSettings,
@@ -119,3 +121,24 @@ def test_exports_messages_to_markdown():
     assert "Hello" in markdown
     assert "## Assistant" in markdown
     assert "Hi there" in markdown
+
+
+def test_generation_settings_accepts_boundary_values():
+    assert GenerationSettings(temperature=0.0, max_tokens=128).temperature == 0.0
+    assert GenerationSettings(temperature=2.0, max_tokens=8192).max_tokens == 8192
+
+
+def test_generation_settings_rejects_temperature_out_of_range():
+    with pytest.raises(ValueError, match="temperature"):
+        GenerationSettings(temperature=-0.1)
+
+    with pytest.raises(ValueError, match="temperature"):
+        GenerationSettings(temperature=2.1)
+
+
+def test_generation_settings_rejects_max_tokens_out_of_range():
+    with pytest.raises(ValueError, match="max_tokens"):
+        GenerationSettings(max_tokens=127)
+
+    with pytest.raises(ValueError, match="max_tokens"):
+        GenerationSettings(max_tokens=8193)

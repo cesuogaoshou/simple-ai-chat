@@ -17,6 +17,12 @@ class GenerationSettings:
     temperature: float = 0.7
     max_tokens: int = 1024
 
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.temperature <= 2.0:
+            raise ValueError("temperature must be between 0.0 and 2.0.")
+        if not 128 <= self.max_tokens <= 8192:
+            raise ValueError("max_tokens must be between 128 and 8192.")
+
 
 def build_chat_messages(history: Sequence[dict[str, str]]) -> list[dict[str, str]]:
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
