@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 
 from openai import OpenAI
 
 from ai_chat.config import ProviderConfig
 
 
-SYSTEM_PROMPT = "你是一个简洁、准确、默认使用中文回答的 AI 助手。"
+SYSTEM_PROMPT = "You are a concise, accurate AI assistant. Reply in Chinese by default."
 ALLOWED_ROLES = {"user", "assistant", "system"}
+
+
+@dataclass(frozen=True)
+class GenerationSettings:
+    temperature: float = 0.7
+    max_tokens: int = 1024
 
 
 def build_chat_messages(history: Sequence[dict[str, str]]) -> list[dict[str, str]]:
@@ -32,3 +39,54 @@ def request_chat_completion(client: OpenAI, config: ProviderConfig, history: Seq
     )
     message = response.choices[0].message.content
     return message or ""
+
+
+def stream_chat_completion(
+    client: OpenAI,
+    config: ProviderConfig,
+    history: Sequence[dict[str, str]],
+    settings: GenerationSettings,
+) -> Iterable[str]:
+    stream = client.chat.completions.create(
+        model=config.model,
+        messages=build_chat_messages(history),
+        temperature=settings.temperature,
+        max_tokens=settings.max_tokens,
+        stream=True,
+    )
+    for chunk in stream:
+        delta = extract_stream_delta(chunk)
+        if delta:
+            yield delta
+
+
+def extract_stream_delta(chunk: object) -> str:
+    choices = getattr(chunk, "choices", [])
+    if not choices:
+        return ""
+    delta = getattr(choices[0], "delta", None)
+    if delta is None:
+        return ""
+    return getattr(delta, "content", None) or ""
+
+
+def export_messages_to_markdown(
+    messages: Sequence[dict[str, str]],
+    *,
+    provider: str,
+    model: str,
+) -> str:
+    lines = [
+        "# Simple AI Chat Export",
+        "",
+        f"- Provider: {provider}",
+        f"- Model: {model}",
+        "",
+    ]
+    for message in messages:
+        role = message.get("role", "message").title()
+        content = message.get("content", "")
+        if not content:
+            continue
+        lines.extend([f"## {role}", "", content, ""])
+    return "\n".join(lines).rstrip() + "\n"
