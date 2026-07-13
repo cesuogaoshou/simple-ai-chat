@@ -38,12 +38,30 @@ def create_chat_client(config: ProviderConfig) -> OpenAI:
 
 
 def request_chat_completion(client: OpenAI, config: ProviderConfig, history: Sequence[dict[str, str]]) -> str:
-    response = client.chat.completions.create(
-        model=config.model,
-        messages=build_chat_messages(history),
-    )
+    response = client.chat.completions.create(**build_chat_completion_kwargs(config, history))
     message = response.choices[0].message.content
     return message or ""
+
+
+def build_chat_completion_kwargs(
+    config: ProviderConfig,
+    history: Sequence[dict[str, str]],
+    settings: GenerationSettings | None = None,
+    *,
+    stream: bool = False,
+) -> dict[str, object]:
+    kwargs: dict[str, object] = {
+        "model": config.model,
+        "messages": build_chat_messages(history),
+    }
+    if settings is not None:
+        kwargs["temperature"] = settings.temperature
+        kwargs["max_tokens"] = settings.max_tokens
+    if stream:
+        kwargs["stream"] = True
+    if config.provider == "deepseek":
+        kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+    return kwargs
 
 
 def stream_chat_completion(
@@ -52,13 +70,7 @@ def stream_chat_completion(
     history: Sequence[dict[str, str]],
     settings: GenerationSettings,
 ) -> Iterable[str]:
-    stream = client.chat.completions.create(
-        model=config.model,
-        messages=build_chat_messages(history),
-        temperature=settings.temperature,
-        max_tokens=settings.max_tokens,
-        stream=True,
-    )
+    stream = client.chat.completions.create(**build_chat_completion_kwargs(config, history, settings, stream=True))
     for chunk in stream:
         delta = extract_stream_delta(chunk)
         if delta:

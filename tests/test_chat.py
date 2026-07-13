@@ -5,6 +5,7 @@ import pytest
 from ai_chat.chat import (
     SYSTEM_PROMPT,
     GenerationSettings,
+    build_chat_completion_kwargs,
     build_chat_messages,
     export_messages_to_markdown,
     extract_stream_delta,
@@ -102,6 +103,43 @@ def test_stream_chat_completion_passes_streaming_arguments():
     assert fake_completions.kwargs["stream"] is True
     assert fake_completions.kwargs["temperature"] == 0.2
     assert fake_completions.kwargs["max_tokens"] == 256
+    assert fake_completions.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+def test_build_chat_completion_kwargs_adds_deepseek_thinking_disabled():
+    config = ProviderConfig(
+        provider="deepseek",
+        api_key="key",
+        base_url="https://api.deepseek.com",
+        model="deepseek-v4-pro",
+    )
+
+    kwargs = build_chat_completion_kwargs(
+        config,
+        [{"role": "user", "content": "Hello"}],
+        GenerationSettings(),
+        stream=True,
+    )
+
+    assert kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+def test_build_chat_completion_kwargs_does_not_add_deepseek_options_for_openai():
+    config = ProviderConfig(
+        provider="openai",
+        api_key="key",
+        base_url="https://api.openai.com/v1",
+        model="gpt-5.6",
+    )
+
+    kwargs = build_chat_completion_kwargs(
+        config,
+        [{"role": "user", "content": "Hello"}],
+        GenerationSettings(),
+        stream=True,
+    )
+
+    assert "extra_body" not in kwargs
 
 
 def test_exports_messages_to_markdown():
