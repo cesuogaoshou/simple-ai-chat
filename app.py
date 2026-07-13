@@ -10,7 +10,7 @@ from ai_chat.chat import (
     export_messages_to_markdown,
     stream_chat_completion,
 )
-from ai_chat.config import ProviderConfig, load_provider_config
+from ai_chat.config import ProviderConfig, get_provider_diagnostic, load_provider_config
 
 
 def main() -> None:
@@ -82,6 +82,12 @@ def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
             st.write(f"Provider: `{config.provider}`")
             st.write(f"Model: `{config.model}`")
             st.write(f"Base URL: `{config.base_url}`")
+
+        diagnostic = get_provider_diagnostic()
+        if diagnostic.has_api_key:
+            st.success(diagnostic.status_text)
+        else:
+            st.warning(diagnostic.status_text)
 
         st.divider()
         st.subheader("Generation")

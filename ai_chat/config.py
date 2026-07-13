@@ -15,6 +15,35 @@ class ProviderConfig:
     model: str
 
 
+@dataclass(frozen=True)
+class ProviderDiagnostic:
+    provider: str
+    api_key_name: str
+    has_api_key: bool
+    status_text: str
+
+
+def get_provider_diagnostic() -> ProviderDiagnostic:
+    provider = os.getenv("AI_PROVIDER", "deepseek").strip().lower()
+    if provider not in SUPPORTED_PROVIDERS:
+        return ProviderDiagnostic(
+            provider=provider,
+            api_key_name="",
+            has_api_key=False,
+            status_text=f"Unsupported AI_PROVIDER '{provider}'.",
+        )
+
+    api_key_name = f"{provider.upper()}_API_KEY"
+    has_api_key = bool(os.getenv(api_key_name, "").strip())
+    status = f"{api_key_name} is configured." if has_api_key else f"{api_key_name} is not configured."
+    return ProviderDiagnostic(
+        provider=provider,
+        api_key_name=api_key_name,
+        has_api_key=has_api_key,
+        status_text=status,
+    )
+
+
 def load_provider_config() -> ProviderConfig:
     provider = os.getenv("AI_PROVIDER", "deepseek").strip().lower()
     if provider not in SUPPORTED_PROVIDERS:
