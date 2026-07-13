@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAIError
-import streamlit as st
 
 from ai_chat.chat import (
     GenerationSettings,

@@ -7,7 +7,6 @@ from openai import OpenAI
 
 from ai_chat.config import ProviderConfig
 
-
 SYSTEM_PROMPT = "You are a concise, accurate AI assistant. Reply in Chinese by default."
 ALLOWED_ROLES = {"user", "assistant", "system"}
 
