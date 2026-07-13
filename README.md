@@ -76,6 +76,8 @@ OPENAI_MODEL=gpt-5.6
 | `OPENAI_BASE_URL` | OpenAI API base URL. Default: `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | OpenAI model name. Default: `gpt-5.6` |
 
+The sidebar shows whether the active provider API key is configured. It never displays the key value or a masked key fragment.
+
 ## Generation Settings
 
 The sidebar controls generation settings for the next user message:
@@ -86,6 +88,8 @@ The sidebar controls generation settings for the next user message:
 | `max_tokens` | `1024` | Controls the maximum output length for one assistant response. |
 
 Changing a setting affects the next request.
+
+The app validates these settings in code as well as in the UI. `temperature` must be between `0.0` and `2.0`; `max_tokens` must be between `128` and `8192`.
 
 ## Export Conversation
 
@@ -104,21 +108,21 @@ The app does not persist history. If you refresh the page or clear the chat befo
 
 ```text
 .
-├── ai_chat/
-│   ├── chat.py              # Chat Completions helpers and export formatting
-│   └── config.py            # Provider configuration parsing
-├── docs/
-│   ├── design.md
-│   ├── implementation-plan.md
-│   └── superpowers/
-├── tests/
-│   ├── test_chat.py
-│   └── test_config.py
-├── .env.example
-├── .gitignore
-├── app.py                   # Streamlit app entry point
-├── README.md
-└── requirements.txt
+|-- ai_chat/
+|   |-- chat.py              # Chat Completions helpers and export formatting
+|   `-- config.py            # Provider configuration parsing
+|-- docs/
+|   |-- design.md
+|   |-- implementation-plan.md
+|   `-- superpowers/
+|-- tests/
+|   |-- test_chat.py
+|   `-- test_config.py
+|-- .env.example
+|-- .gitignore
+|-- app.py                   # Streamlit app entry point
+|-- README.md
+`-- requirements.txt
 ```
 
 ## Run Tests
@@ -127,6 +131,18 @@ The app does not persist history. If you refresh the page or clear the chat befo
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m compileall app.py ai_chat
 ```
+
+## Quality Checks
+
+Run the same checks locally that CI runs on GitHub:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m compileall app.py ai_chat
+.\.venv\Scripts\python.exe -m ruff check .
+```
+
+The GitHub Actions workflow runs these checks on pushes and pull requests to `main`.
 
 ## Troubleshooting
 
