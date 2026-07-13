@@ -1,19 +1,22 @@
 # Simple AI Chat
 
-一个最小可用的 AI 聊天项目。界面使用 Streamlit，模型调用使用 OpenAI Python SDK 的 OpenAI-compatible Chat Completions API。默认接入 DeepSeek，也可以通过环境变量切换到 OpenAI。
+A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an OpenAI-compatible Chat Completions API, defaults to DeepSeek, and can switch to OpenAI through environment variables.
 
-## 你会得到什么
+## Features
 
-- 一个本地可运行的 Web 聊天界面
-- 会话内上下文记忆
-- DeepSeek / OpenAI 可配置切换
-- `.env` 管理 API Key、Base URL 和模型名
-- 基础错误提示，避免把密钥输出到页面或日志
-- 单元测试覆盖 Provider 配置和消息构造逻辑
+- Local web chat UI
+- Session-only conversation context
+- Streaming assistant responses
+- Configurable DeepSeek / OpenAI provider
+- Sidebar controls for `temperature` and `max_tokens`
+- Markdown export for the current conversation
+- `.env` based API key, base URL, and model configuration
+- Basic error messages without exposing secrets
+- Unit tests for provider configuration, message construction, streaming helpers, and export formatting
 
-## 快速启动
+## Quick Start
 
-在 Windows PowerShell 中执行：
+Run these commands in Windows PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -21,23 +24,23 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-编辑 `.env`，填入你要使用的 Provider 的 API Key。
+Edit `.env` and fill in the API key for the provider you want to use.
 
-启动应用：
+Start the app:
 
 ```powershell
 .\.venv\Scripts\streamlit.exe run app.py
 ```
 
-启动后浏览器会打开本地 Streamlit 页面。如果没有自动打开，可以访问终端中显示的 Local URL，通常是：
+Streamlit usually opens the browser automatically. If it does not, open the Local URL shown in the terminal, usually:
 
 ```text
 http://localhost:8501
 ```
 
-## 配置 DeepSeek
+## DeepSeek Configuration
 
-项目默认使用 DeepSeek：
+The project defaults to DeepSeek:
 
 ```env
 AI_PROVIDER=deepseek
@@ -47,11 +50,11 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-pro
 ```
 
-DeepSeek 兼容 OpenAI Chat Completions API 格式，但需要使用 DeepSeek 自己的 API Key、Base URL 和模型名。
+DeepSeek is compatible with the OpenAI Chat Completions API shape, but it requires a DeepSeek API key, base URL, and model name.
 
-## 配置 OpenAI
+## OpenAI Configuration
 
-把 `.env` 改成：
+To switch to OpenAI:
 
 ```env
 AI_PROVIDER=openai
@@ -61,81 +64,112 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-5.6
 ```
 
-## 环境变量说明
+## Environment Variables
 
-| 变量 | 说明 |
+| Variable | Description |
 | --- | --- |
-| `AI_PROVIDER` | 当前模型服务商，只支持 `deepseek` 或 `openai` |
-| `DEEPSEEK_API_KEY` | DeepSeek API Key |
-| `DEEPSEEK_BASE_URL` | DeepSeek API Base URL，默认 `https://api.deepseek.com` |
-| `DEEPSEEK_MODEL` | DeepSeek 模型名，默认 `deepseek-v4-pro` |
-| `OPENAI_API_KEY` | OpenAI API Key |
-| `OPENAI_BASE_URL` | OpenAI API Base URL，默认 `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | OpenAI 模型名，默认 `gpt-5.6` |
+| `AI_PROVIDER` | Current provider. Supported values: `deepseek`, `openai` |
+| `DEEPSEEK_API_KEY` | DeepSeek API key |
+| `DEEPSEEK_BASE_URL` | DeepSeek API base URL. Default: `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL` | DeepSeek model name. Default: `deepseek-v4-pro` |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_BASE_URL` | OpenAI API base URL. Default: `https://api.openai.com/v1` |
+| `OPENAI_MODEL` | OpenAI model name. Default: `gpt-5.6` |
 
-## 项目结构
+## Generation Settings
+
+The sidebar controls generation settings for the next user message:
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `temperature` | `0.7` | Controls randomness. Lower is more stable; higher is more varied. |
+| `max_tokens` | `1024` | Controls the maximum output length for one assistant response. |
+
+Changing a setting affects the next request.
+
+## Export Conversation
+
+When the current session has at least one message, the sidebar shows a `Download Markdown` button. It downloads the current browser session conversation as Markdown.
+
+The export includes:
+
+- Provider
+- Model
+- User messages
+- Assistant replies
+
+The app does not persist history. If you refresh the page or clear the chat before downloading, the unsaved conversation is gone.
+
+## Project Structure
 
 ```text
 .
 ├── ai_chat/
-│   ├── chat.py              # Chat Completions 消息构造和模型请求
-│   └── config.py            # Provider 配置解析
+│   ├── chat.py              # Chat Completions helpers and export formatting
+│   └── config.py            # Provider configuration parsing
 ├── docs/
-│   ├── design.md            # 设计说明
-│   └── implementation-plan.md
+│   ├── design.md
+│   ├── implementation-plan.md
+│   └── superpowers/
 ├── tests/
 │   ├── test_chat.py
 │   └── test_config.py
-├── .env.example             # 环境变量模板
+├── .env.example
 ├── .gitignore
-├── app.py                   # Streamlit 应用入口
+├── app.py                   # Streamlit app entry point
 ├── README.md
 └── requirements.txt
 ```
 
-## 运行测试
+## Run Tests
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m compileall app.py ai_chat
 ```
 
-## 常见问题
+## Troubleshooting
 
-### 页面提示缺少 API Key
+### The page says the API key is missing
 
-确认已经复制 `.env.example` 为 `.env`，并填写了当前 Provider 对应的 key。
+Make sure `.env.example` has been copied to `.env`, then fill in the API key for the selected provider.
 
-例如 `AI_PROVIDER=deepseek` 时，需要填写：
+For `AI_PROVIDER=deepseek`, set:
 
 ```env
 DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
-### 想切换 Provider
+For `AI_PROVIDER=openai`, set:
 
-修改 `.env` 中的 `AI_PROVIDER`，然后重启 Streamlit。
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### Switch providers
+
+Change `AI_PROVIDER` in `.env`, then restart Streamlit:
 
 ```env
 AI_PROVIDER=openai
 ```
 
-或：
+or:
 
 ```env
 AI_PROVIDER=deepseek
 ```
 
-### 请求模型失败
+### Model requests fail
 
-优先检查这几项：
+Check these first:
 
-- API Key 是否有效
-- 模型名是否存在
-- Base URL 是否正确
-- 当前网络是否能访问对应服务商
+- API key is valid
+- Model name exists for the selected provider
+- Base URL is correct
+- Network can reach the selected provider
 
-## GitHub 仓库
+## GitHub
 
 ```text
 https://github.com/cesuogaoshou/simple-ai-chat
