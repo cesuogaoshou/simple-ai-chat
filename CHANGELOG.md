@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3 - Deployment Readiness
+
+- Added Streamlit deployment configuration.
+- Added Streamlit secrets template.
+- Added safe runtime diagnostics.
+- Added Streamlit Cloud deployment documentation.
+
 ## v1.2 - Engineering Quality
 
 - Added safe provider diagnostics in the Streamlit sidebar.

@@ -10,6 +10,8 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - Configurable DeepSeek / OpenAI provider
 - Sidebar controls for `temperature` and `max_tokens`
 - Markdown export for the current conversation
+- Streamlit Cloud deployment configuration
+- Safe runtime diagnostics for local and Streamlit Cloud runs
 - `.env` based API key, base URL, and model configuration
 - Basic error messages without exposing secrets
 - Unit tests for provider configuration, message construction, streaming helpers, and export formatting
@@ -104,6 +106,28 @@ The export includes:
 
 The app does not persist history. If you refresh the page or clear the chat before downloading, the unsaved conversation is gone.
 
+## Deployment
+
+### Streamlit Cloud
+
+1. Push this repository to GitHub.
+2. Create a new app in Streamlit Cloud.
+3. Select this repository and set the main file path to `app.py`.
+4. Add secrets in Streamlit Cloud using the values from `.streamlit/secrets.toml.example`.
+5. Set `AI_PROVIDER` to `deepseek` or `openai`.
+6. Deploy the app.
+
+Do not commit `.env` or `.streamlit/secrets.toml`. The repository includes `.streamlit/secrets.toml.example` only as a template.
+
+### Streamlit Secrets Example
+
+```toml
+AI_PROVIDER = "deepseek"
+DEEPSEEK_API_KEY = "your_deepseek_api_key"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_MODEL = "deepseek-v4-pro"
+```
+
 ## Project Structure
 
 ```text
@@ -111,6 +135,9 @@ The app does not persist history. If you refresh the page or clear the chat befo
 |-- ai_chat/
 |   |-- chat.py              # Chat Completions helpers and export formatting
 |   `-- config.py            # Provider configuration parsing
+|-- .streamlit/
+|   |-- config.toml
+|   `-- secrets.toml.example
 |-- docs/
 |   |-- design.md
 |   |-- implementation-plan.md
