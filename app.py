@@ -11,6 +11,7 @@ from ai_chat.chat import (
     stream_chat_completion,
 )
 from ai_chat.config import ProviderConfig, get_provider_diagnostic, load_provider_config
+from ai_chat.runtime import detect_runtime
 
 
 def main() -> None:
@@ -76,6 +77,7 @@ def load_config_for_ui() -> ProviderConfig | None:
 def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
     with st.sidebar:
         st.header("Configuration")
+        st.caption(detect_runtime().label)
         if config is None:
             st.caption("Current configuration is unavailable.")
         else:
