@@ -7,6 +7,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .streamlit/secrets.toml
+.data/
 dist/
 build/
 *.egg-info/

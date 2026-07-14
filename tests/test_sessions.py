@@ -3,7 +3,11 @@ from ai_chat.sessions import (
     create_default_session,
     create_session,
     delete_session,
+    export_session_json,
+    import_sessions_json,
+    load_sessions,
     rename_session,
+    save_sessions,
 )
 
 
@@ -64,3 +68,55 @@ def test_delete_session_selects_remaining_session():
 
     assert sessions == [second]
     assert active_id == second.id
+
+
+def test_save_and_load_sessions(tmp_path):
+    path = tmp_path / "chats.json"
+    session = create_session("Saved")
+    session.messages.append({"role": "user", "content": "Hello"})
+
+    save_sessions(path, [session])
+    loaded = load_sessions(path)
+
+    assert loaded == [session]
+
+
+def test_load_sessions_returns_default_when_file_missing(tmp_path):
+    loaded = load_sessions(tmp_path / "missing.json")
+
+    assert len(loaded) == 1
+    assert loaded[0].title == "Untitled chat"
+
+
+def test_load_sessions_backs_up_corrupt_file(tmp_path):
+    path = tmp_path / "chats.json"
+    path.write_text("{not-json", encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert len(loaded) == 1
+    assert (tmp_path / "chats.invalid.json").exists()
+
+
+def test_export_session_json_round_trips():
+    session = create_session("Exported")
+    session.messages.append({"role": "assistant", "content": "Hi"})
+
+    exported = export_session_json(session)
+    imported = import_sessions_json(exported, existing_ids=set())
+
+    assert len(imported) == 1
+    assert imported[0].title == "Exported"
+    assert imported[0].messages == [{"role": "assistant", "content": "Hi"}]
+
+
+def test_import_sessions_json_rejects_invalid_shape():
+    assert import_sessions_json('{"bad": true}', existing_ids=set()) == []
+
+
+def test_import_sessions_json_generates_new_id_on_collision():
+    session = create_session("Collision")
+    imported = import_sessions_json(export_session_json(session), existing_ids={session.id})
+
+    assert len(imported) == 1
+    assert imported[0].id != session.id
