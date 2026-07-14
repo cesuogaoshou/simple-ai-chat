@@ -5,11 +5,13 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 ## Features
 
 - Local web chat UI
-- Session-only conversation context
+- Local multi-session management
+- JSON session persistence under `.data/`
+- JSON import/export for chat sessions
 - Streaming assistant responses
 - Configurable DeepSeek / OpenAI provider
 - Sidebar controls for `temperature` and `max_tokens`
-- Markdown export for the current conversation
+- Markdown export for the current chat
 - Streamlit Cloud deployment configuration
 - Safe runtime diagnostics for local and Streamlit Cloud runs
 - `.env` based API key, base URL, and model configuration
@@ -104,7 +106,22 @@ The export includes:
 - User messages
 - Assistant replies
 
-The app does not persist history. If you refresh the page or clear the chat before downloading, the unsaved conversation is gone.
+Markdown export is intended for readable sharing. JSON export in the Sessions sidebar is intended for backup and re-import.
+
+## Local Sessions
+
+The app stores local chat sessions in `.data/chats.json`. The `.data/` directory is ignored by Git so private chat history is not committed.
+
+The sidebar supports:
+
+- Creating a new chat
+- Switching chats
+- Renaming the active chat
+- Deleting the active chat
+- Exporting the active chat as JSON
+- Importing chat sessions from JSON
+
+Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
 
 ## Deployment
 
@@ -134,7 +151,9 @@ DEEPSEEK_MODEL = "deepseek-v4-pro"
 .
 |-- ai_chat/
 |   |-- chat.py              # Chat Completions helpers and export formatting
-|   `-- config.py            # Provider configuration parsing
+|   |-- config.py            # Provider configuration parsing
+|   |-- runtime.py           # Runtime environment detection
+|   `-- sessions.py          # Local chat session storage helpers
 |-- .streamlit/
 |   |-- config.toml
 |   `-- secrets.toml.example
@@ -144,7 +163,9 @@ DEEPSEEK_MODEL = "deepseek-v4-pro"
 |   `-- superpowers/
 |-- tests/
 |   |-- test_chat.py
-|   `-- test_config.py
+|   |-- test_config.py
+|   |-- test_runtime.py
+|   `-- test_sessions.py
 |-- .env.example
 |-- .gitignore
 |-- app.py                   # Streamlit app entry point

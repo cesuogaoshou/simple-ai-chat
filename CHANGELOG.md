@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4 - Local Session Management
+
+- Added local multi-session management.
+- Added JSON persistence under `.data/chats.json`.
+- Added JSON import and export for sessions.
+- Kept Markdown export for readable sharing.
+
 ## v1.3 - Deployment Readiness
 
 - Added Streamlit deployment configuration.
