@@ -52,6 +52,18 @@ def rename_session(session: ChatSession, title: str) -> ChatSession:
     )
 
 
+def update_session_messages(
+    session: ChatSession, messages: list[dict[str, str]]
+) -> ChatSession:
+    return ChatSession(
+        id=session.id,
+        title=session.title,
+        messages=messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+    )
+
+
 def delete_session(
     sessions: list[ChatSession], session_id: str
 ) -> tuple[list[ChatSession], str]:

@@ -8,6 +8,7 @@ from ai_chat.sessions import (
     load_sessions,
     rename_session,
     save_sessions,
+    update_session_messages,
 )
 
 
@@ -48,6 +49,25 @@ def test_rename_session_updates_title_and_timestamp():
     assert renamed.id == "session-1"
     assert renamed.title == "New"
     assert renamed.updated_at != "2026-07-14T00:00:00Z"
+
+
+def test_update_session_messages_preserves_metadata_and_updates_timestamp():
+    session = ChatSession(
+        id="session-1",
+        title="Chat",
+        messages=[],
+        created_at="2026-07-14T00:00:00Z",
+        updated_at="2026-07-14T00:00:00Z",
+    )
+    messages = [{"role": "user", "content": "Hello"}]
+
+    updated = update_session_messages(session, messages)
+
+    assert updated.id == "session-1"
+    assert updated.title == "Chat"
+    assert updated.messages == messages
+    assert updated.created_at == "2026-07-14T00:00:00Z"
+    assert updated.updated_at != "2026-07-14T00:00:00Z"
 
 
 def test_delete_session_preserves_at_least_one_session():

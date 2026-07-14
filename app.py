@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAIError
@@ -12,6 +14,17 @@ from ai_chat.chat import (
 )
 from ai_chat.config import ProviderConfig, get_provider_diagnostic, load_provider_config
 from ai_chat.runtime import detect_runtime
+from ai_chat.sessions import (
+    ChatSession,
+    create_session,
+    delete_session,
+    load_sessions,
+    rename_session,
+    save_sessions,
+    update_session_messages,
+)
+
+SESSION_STORE = Path(".data/chats.json")
 
 
 def main() -> None:
@@ -19,13 +32,15 @@ def main() -> None:
     st.set_page_config(page_title="Simple AI Chat", page_icon="chat")
     st.title("Simple AI Chat")
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if "sessions" not in st.session_state:
+        st.session_state.sessions = load_sessions(SESSION_STORE)
+        st.session_state.active_session_id = st.session_state.sessions[0].id
 
     config = load_config_for_ui()
     settings = render_sidebar(config)
+    session = active_session()
 
-    for message in st.session_state.messages:
+    for message in session.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
@@ -33,7 +48,9 @@ def main() -> None:
     if not prompt:
         return
 
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    messages = [*session.messages, {"role": "user", "content": prompt}]
+    session = update_session_messages(session, messages)
+    replace_active_session(session)
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -47,7 +64,7 @@ def main() -> None:
         placeholder = st.empty()
         try:
             client = create_chat_client(config)
-            for chunk in stream_chat_completion(client, config, st.session_state.messages, settings):
+            for chunk in stream_chat_completion(client, config, session.messages, settings):
                 reply += chunk
                 placeholder.markdown(reply)
         except OpenAIError as exc:
@@ -63,7 +80,8 @@ def main() -> None:
                 reply = "No response content was returned."
                 placeholder.warning(reply)
 
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+    messages = [*session.messages, {"role": "assistant", "content": reply}]
+    replace_active_session(update_session_messages(session, messages))
 
 
 def load_config_for_ui() -> ProviderConfig | None:
@@ -74,8 +92,66 @@ def load_config_for_ui() -> ProviderConfig | None:
         return None
 
 
+def active_session() -> ChatSession:
+    for session in st.session_state.sessions:
+        if session.id == st.session_state.active_session_id:
+            return session
+    st.session_state.active_session_id = st.session_state.sessions[0].id
+    return st.session_state.sessions[0]
+
+
+def replace_active_session(updated: ChatSession) -> None:
+    st.session_state.sessions = [
+        updated if session.id == updated.id else session
+        for session in st.session_state.sessions
+    ]
+    save_sessions(SESSION_STORE, st.session_state.sessions)
+
+
+def render_sessions_sidebar() -> None:
+    st.header("Sessions")
+    current = active_session()
+    session_ids = [session.id for session in st.session_state.sessions]
+    selected_id = st.selectbox(
+        "Active chat",
+        options=session_ids,
+        index=session_ids.index(current.id),
+        format_func=session_title_for_id,
+    )
+    st.session_state.active_session_id = selected_id
+
+    current = active_session()
+    new_title = st.text_input("Chat title", value=current.title)
+    if new_title != current.title:
+        replace_active_session(rename_session(current, new_title))
+
+    if st.button("New chat", use_container_width=True):
+        session = create_session("Untitled chat")
+        st.session_state.sessions.append(session)
+        st.session_state.active_session_id = session.id
+        save_sessions(SESSION_STORE, st.session_state.sessions)
+        st.rerun()
+
+    if st.button("Delete chat", use_container_width=True):
+        sessions, active_id = delete_session(st.session_state.sessions, active_session().id)
+        st.session_state.sessions = sessions
+        st.session_state.active_session_id = active_id
+        save_sessions(SESSION_STORE, st.session_state.sessions)
+        st.rerun()
+
+
+def session_title_for_id(session_id: str) -> str:
+    for session in st.session_state.sessions:
+        if session.id == session_id:
+            return session.title
+    return "Untitled chat"
+
+
 def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
     with st.sidebar:
+        render_sessions_sidebar()
+
+        st.divider()
         st.header("Configuration")
         st.caption(detect_runtime().label)
         if config is None:
@@ -98,14 +174,14 @@ def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
 
         st.divider()
         if st.button("Clear chat", use_container_width=True):
-            st.session_state.messages = []
+            replace_active_session(update_session_messages(active_session(), []))
             st.rerun()
 
-        if config is not None and st.session_state.get("messages"):
+        if config is not None and active_session().messages:
             st.download_button(
                 "Download Markdown",
                 data=export_messages_to_markdown(
-                    st.session_state.messages,
+                    active_session().messages,
                     provider=config.provider,
                     model=config.model,
                 ),
