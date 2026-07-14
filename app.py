@@ -18,6 +18,8 @@ from ai_chat.sessions import (
     ChatSession,
     create_session,
     delete_session,
+    export_session_json,
+    import_sessions_json,
     load_sessions,
     rename_session,
     save_sessions,
@@ -138,6 +140,30 @@ def render_sessions_sidebar() -> None:
         st.session_state.active_session_id = active_id
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
+
+    current = active_session()
+    st.download_button(
+        "Export JSON",
+        data=export_session_json(current),
+        file_name=f"{current.title or 'chat'}.json",
+        mime="application/json",
+        use_container_width=True,
+    )
+
+    uploaded = st.file_uploader("Import JSON", type=["json"])
+    if uploaded is not None:
+        imported = import_sessions_json(
+            uploaded.getvalue().decode("utf-8"),
+            existing_ids={session.id for session in st.session_state.sessions},
+        )
+        if imported:
+            st.session_state.sessions.extend(imported)
+            st.session_state.active_session_id = imported[0].id
+            save_sessions(SESSION_STORE, st.session_state.sessions)
+            st.success(f"Imported {len(imported)} session(s).")
+            st.rerun()
+        else:
+            st.error("Invalid chat session JSON.")
 
 
 def session_title_for_id(session_id: str) -> str:
