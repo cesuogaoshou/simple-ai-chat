@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +26,25 @@ def utc_now() -> str:
 def safe_title(title: str) -> str:
     cleaned = title.strip()
     return cleaned or DEFAULT_TITLE
+
+
+def derive_session_title(text: str, max_length: int = 30) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return DEFAULT_TITLE
+    return cleaned[:max_length]
+
+
+def maybe_auto_title_session(session: ChatSession, prompt: str) -> ChatSession:
+    if session.title != DEFAULT_TITLE:
+        return session
+    return ChatSession(
+        id=session.id,
+        title=derive_session_title(prompt),
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+    )
 
 
 def create_default_session() -> ChatSession:

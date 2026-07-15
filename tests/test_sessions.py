@@ -3,9 +3,11 @@ from ai_chat.sessions import (
     create_default_session,
     create_session,
     delete_session,
+    derive_session_title,
     export_session_json,
     import_sessions_json,
     load_sessions,
+    maybe_auto_title_session,
     rename_session,
     save_sessions,
     update_session_messages,
@@ -33,6 +35,53 @@ def test_create_session_falls_back_for_empty_title():
     session = create_session("")
 
     assert session.title == "Untitled chat"
+
+
+def test_derive_session_title_cleans_whitespace():
+    assert derive_session_title("  Build   a  small app  ") == "Build a small app"
+
+
+def test_derive_session_title_truncates_long_prompt():
+    title = derive_session_title("1234567890 1234567890 1234567890 extra")
+
+    assert title == "1234567890 1234567890 12345678"
+    assert len(title) == 30
+
+
+def test_derive_session_title_falls_back_for_blank_text():
+    assert derive_session_title("   ") == "Untitled chat"
+
+
+def test_maybe_auto_title_session_updates_default_title():
+    session = ChatSession(
+        id="session-1",
+        title="Untitled chat",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    updated = maybe_auto_title_session(session, "Explain local storage")
+
+    assert updated.id == "session-1"
+    assert updated.title == "Explain local storage"
+    assert updated.messages == []
+    assert updated.created_at == "2026-07-15T00:00:00Z"
+    assert updated.updated_at != "2026-07-15T00:00:00Z"
+
+
+def test_maybe_auto_title_session_preserves_custom_title():
+    session = ChatSession(
+        id="session-1",
+        title="Project notes",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    updated = maybe_auto_title_session(session, "A different prompt")
+
+    assert updated == session
 
 
 def test_rename_session_updates_title_and_timestamp():
