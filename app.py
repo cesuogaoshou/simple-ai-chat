@@ -19,10 +19,13 @@ from ai_chat.sessions import (
     create_session,
     delete_session,
     export_session_json,
+    filter_sessions_by_title,
     import_sessions_json,
     load_sessions,
+    maybe_auto_title_session,
     rename_session,
     save_sessions,
+    sort_sessions_by_updated_at,
     update_session_messages,
 )
 
@@ -35,7 +38,9 @@ def main() -> None:
     st.title("Simple AI Chat")
 
     if "sessions" not in st.session_state:
-        st.session_state.sessions = load_sessions(SESSION_STORE)
+        st.session_state.sessions = sort_sessions_by_updated_at(
+            load_sessions(SESSION_STORE)
+        )
         st.session_state.active_session_id = st.session_state.sessions[0].id
 
     config = load_config_for_ui()
@@ -51,7 +56,7 @@ def main() -> None:
         return
 
     messages = [*session.messages, {"role": "user", "content": prompt}]
-    session = update_session_messages(session, messages)
+    session = maybe_auto_title_session(update_session_messages(session, messages), prompt)
     replace_active_session(session)
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -103,24 +108,41 @@ def active_session() -> ChatSession:
 
 
 def replace_active_session(updated: ChatSession) -> None:
-    st.session_state.sessions = [
-        updated if session.id == updated.id else session
-        for session in st.session_state.sessions
-    ]
+    st.session_state.sessions = sort_sessions_by_updated_at(
+        [
+            updated if session.id == updated.id else session
+            for session in st.session_state.sessions
+        ]
+    )
     save_sessions(SESSION_STORE, st.session_state.sessions)
 
 
 def render_sessions_sidebar() -> None:
     st.header("Sessions")
     current = active_session()
-    session_ids = [session.id for session in st.session_state.sessions]
-    selected_id = st.selectbox(
-        "Active chat",
-        options=session_ids,
-        index=session_ids.index(current.id),
-        format_func=session_title_for_id,
-    )
-    st.session_state.active_session_id = selected_id
+    query = st.text_input("Search chats", value="")
+    visible_sessions = filter_sessions_by_title(st.session_state.sessions, query)
+    visible_ids = [session.id for session in visible_sessions]
+    if current.id in visible_ids:
+        selected_id = st.selectbox(
+            "Active chat",
+            options=visible_ids,
+            index=visible_ids.index(current.id),
+            format_func=session_title_for_id,
+        )
+        st.session_state.active_session_id = selected_id
+    elif visible_ids:
+        st.caption("Active chat is hidden by the current search.")
+        selected_id = st.selectbox(
+            "Matching chats",
+            options=visible_ids,
+            index=None,
+            format_func=session_title_for_id,
+        )
+        if selected_id is not None:
+            st.session_state.active_session_id = selected_id
+    else:
+        st.caption("No chats match the current search.")
 
     current = active_session()
     new_title = st.text_input("Chat title", value=current.title)
@@ -131,6 +153,7 @@ def render_sessions_sidebar() -> None:
         session = create_session("Untitled chat")
         st.session_state.sessions.append(session)
         st.session_state.active_session_id = session.id
+        st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
@@ -138,6 +161,7 @@ def render_sessions_sidebar() -> None:
         sessions, active_id = delete_session(st.session_state.sessions, active_session().id)
         st.session_state.sessions = sessions
         st.session_state.active_session_id = active_id
+        st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
@@ -159,6 +183,7 @@ def render_sessions_sidebar() -> None:
         if imported:
             st.session_state.sessions.extend(imported)
             st.session_state.active_session_id = imported[0].id
+            st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
             save_sessions(SESSION_STORE, st.session_state.sessions)
             st.success(f"Imported {len(imported)} session(s).")
             st.rerun()
