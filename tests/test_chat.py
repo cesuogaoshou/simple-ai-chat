@@ -29,6 +29,25 @@ def test_builds_chat_completion_messages_with_system_prompt():
     ]
 
 
+def test_build_chat_messages_uses_custom_system_prompt():
+    messages = build_chat_messages(
+        [{"role": "user", "content": "Hello"}],
+        system_prompt="Custom system prompt",
+    )
+
+    assert messages[0] == {"role": "system", "content": "Custom system prompt"}
+    assert messages[1] == {"role": "user", "content": "Hello"}
+
+
+def test_build_chat_messages_falls_back_for_blank_system_prompt():
+    messages = build_chat_messages(
+        [{"role": "user", "content": "Hello"}],
+        system_prompt="   ",
+    )
+
+    assert messages[0] == {"role": "system", "content": SYSTEM_PROMPT}
+
+
 def test_ignores_messages_with_unknown_roles():
     history = [
         {"role": "tool", "content": "ignored"},
@@ -103,6 +122,10 @@ def test_stream_chat_completion_passes_streaming_arguments():
     assert fake_completions.kwargs["stream"] is True
     assert fake_completions.kwargs["temperature"] == 0.2
     assert fake_completions.kwargs["max_tokens"] == 256
+    assert fake_completions.kwargs["messages"][0] == {
+        "role": "system",
+        "content": SYSTEM_PROMPT,
+    }
     assert fake_completions.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
 
 
@@ -122,6 +145,24 @@ def test_build_chat_completion_kwargs_adds_deepseek_thinking_disabled():
     )
 
     assert kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+def test_build_chat_completion_kwargs_uses_custom_system_prompt():
+    config = ProviderConfig(
+        provider="deepseek",
+        api_key="key",
+        base_url="https://api.deepseek.com",
+        model="deepseek-v4-pro",
+    )
+
+    kwargs = build_chat_completion_kwargs(
+        config,
+        [{"role": "user", "content": "Hello"}],
+        GenerationSettings(),
+        system_prompt="Custom prompt",
+    )
+
+    assert kwargs["messages"][0] == {"role": "system", "content": "Custom prompt"}
 
 
 def test_build_chat_completion_kwargs_does_not_add_deepseek_options_for_openai():

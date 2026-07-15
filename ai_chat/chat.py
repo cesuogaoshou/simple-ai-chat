@@ -23,8 +23,13 @@ class GenerationSettings:
             raise ValueError("max_tokens must be between 128 and 8192.")
 
 
-def build_chat_messages(history: Sequence[dict[str, str]]) -> list[dict[str, str]]:
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+def build_chat_messages(
+    history: Sequence[dict[str, str]], system_prompt: str | None = None
+) -> list[dict[str, str]]:
+    prompt = system_prompt.strip() if system_prompt else SYSTEM_PROMPT
+    if not prompt:
+        prompt = SYSTEM_PROMPT
+    messages = [{"role": "system", "content": prompt}]
     for message in history:
         role = message.get("role", "")
         content = message.get("content", "")
@@ -37,8 +42,15 @@ def create_chat_client(config: ProviderConfig) -> OpenAI:
     return OpenAI(api_key=config.api_key, base_url=config.base_url)
 
 
-def request_chat_completion(client: OpenAI, config: ProviderConfig, history: Sequence[dict[str, str]]) -> str:
-    response = client.chat.completions.create(**build_chat_completion_kwargs(config, history))
+def request_chat_completion(
+    client: OpenAI,
+    config: ProviderConfig,
+    history: Sequence[dict[str, str]],
+    system_prompt: str | None = None,
+) -> str:
+    response = client.chat.completions.create(
+        **build_chat_completion_kwargs(config, history, system_prompt=system_prompt)
+    )
     message = response.choices[0].message.content
     return message or ""
 
@@ -49,10 +61,11 @@ def build_chat_completion_kwargs(
     settings: GenerationSettings | None = None,
     *,
     stream: bool = False,
+    system_prompt: str | None = None,
 ) -> dict[str, object]:
     kwargs: dict[str, object] = {
         "model": config.model,
-        "messages": build_chat_messages(history),
+        "messages": build_chat_messages(history, system_prompt),
     }
     if settings is not None:
         kwargs["temperature"] = settings.temperature
@@ -69,8 +82,17 @@ def stream_chat_completion(
     config: ProviderConfig,
     history: Sequence[dict[str, str]],
     settings: GenerationSettings,
+    system_prompt: str | None = None,
 ) -> Iterable[str]:
-    stream = client.chat.completions.create(**build_chat_completion_kwargs(config, history, settings, stream=True))
+    stream = client.chat.completions.create(
+        **build_chat_completion_kwargs(
+            config,
+            history,
+            settings,
+            stream=True,
+            system_prompt=system_prompt,
+        )
+    )
     for chunk in stream:
         delta = extract_stream_delta(chunk)
         if delta:
