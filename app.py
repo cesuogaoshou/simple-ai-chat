@@ -17,8 +17,10 @@ from ai_chat.runtime import detect_runtime
 from ai_chat.sessions import (
     ChatSession,
     create_session,
+    delete_last_turn,
     delete_session,
     export_session_json,
+    export_sessions_json,
     filter_sessions_by_title,
     import_sessions_json,
     load_sessions,
@@ -173,6 +175,13 @@ def render_sessions_sidebar() -> None:
         mime="application/json",
         use_container_width=True,
     )
+    st.download_button(
+        "Export All JSON",
+        data=export_sessions_json(st.session_state.sessions),
+        file_name="simple-ai-chat-sessions.json",
+        mime="application/json",
+        use_container_width=True,
+    )
 
     uploaded = st.file_uploader("Import JSON", type=["json"])
     if uploaded is not None:
@@ -226,6 +235,10 @@ def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
         st.divider()
         if st.button("Clear chat", use_container_width=True):
             replace_active_session(update_session_messages(active_session(), []))
+            st.rerun()
+
+        if active_session().messages and st.button("Delete last turn", use_container_width=True):
+            replace_active_session(delete_last_turn(active_session()))
             st.rerun()
 
         if config is not None and active_session().messages:
