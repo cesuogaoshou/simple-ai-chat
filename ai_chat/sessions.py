@@ -84,6 +84,21 @@ def update_session_messages(
     )
 
 
+def delete_last_turn(session: ChatSession) -> ChatSession:
+    if not session.messages:
+        return session
+
+    delete_count = 1
+    if (
+        len(session.messages) >= 2
+        and session.messages[-1].get("role") == "assistant"
+        and session.messages[-2].get("role") == "user"
+    ):
+        delete_count = 2
+
+    return update_session_messages(session, session.messages[:-delete_count])
+
+
 def delete_session(
     sessions: list[ChatSession], session_id: str
 ) -> tuple[list[ChatSession], str]:
@@ -175,6 +190,11 @@ def load_sessions(path: Path) -> list[ChatSession]:
 
 def export_session_json(session: ChatSession) -> str:
     return json.dumps(session_to_dict(session), ensure_ascii=False, indent=2)
+
+
+def export_sessions_json(sessions: list[ChatSession]) -> str:
+    payload = {"sessions": [session_to_dict(session) for session in sessions]}
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def import_sessions_json(text: str, existing_ids: set[str]) -> list[ChatSession]:

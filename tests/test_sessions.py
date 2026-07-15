@@ -2,9 +2,11 @@ from ai_chat.sessions import (
     ChatSession,
     create_default_session,
     create_session,
+    delete_last_turn,
     delete_session,
     derive_session_title,
     export_session_json,
+    export_sessions_json,
     filter_sessions_by_title,
     import_sessions_json,
     load_sessions,
@@ -121,6 +123,62 @@ def test_update_session_messages_preserves_metadata_and_updates_timestamp():
     assert updated.updated_at != "2026-07-14T00:00:00Z"
 
 
+def test_delete_last_turn_removes_user_and_assistant_pair():
+    session = ChatSession(
+        id="session-1",
+        title="Chat",
+        messages=[
+            {"role": "user", "content": "First"},
+            {"role": "assistant", "content": "Reply"},
+            {"role": "user", "content": "Remove me"},
+            {"role": "assistant", "content": "Remove me too"},
+        ],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    updated = delete_last_turn(session)
+
+    assert updated.messages == [
+        {"role": "user", "content": "First"},
+        {"role": "assistant", "content": "Reply"},
+    ]
+    assert updated.updated_at != "2026-07-15T00:00:00Z"
+
+
+def test_delete_last_turn_removes_single_trailing_message():
+    session = ChatSession(
+        id="session-1",
+        title="Chat",
+        messages=[
+            {"role": "user", "content": "First"},
+            {"role": "assistant", "content": "Reply"},
+            {"role": "user", "content": "Trailing"},
+        ],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    updated = delete_last_turn(session)
+
+    assert updated.messages == [
+        {"role": "user", "content": "First"},
+        {"role": "assistant", "content": "Reply"},
+    ]
+
+
+def test_delete_last_turn_is_safe_for_empty_session():
+    session = ChatSession(
+        id="session-1",
+        title="Chat",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    assert delete_last_turn(session) == session
+
+
 def test_delete_session_preserves_at_least_one_session():
     only_session = create_session("Only")
 
@@ -225,6 +283,21 @@ def test_export_session_json_round_trips():
     assert len(imported) == 1
     assert imported[0].title == "Exported"
     assert imported[0].messages == [{"role": "assistant", "content": "Hi"}]
+
+
+def test_export_sessions_json_round_trips_multiple_sessions():
+    first = create_session("First")
+    first.messages.append({"role": "user", "content": "Hello"})
+    second = create_session("Second")
+    second.messages.append({"role": "assistant", "content": "Hi"})
+
+    exported = export_sessions_json([first, second])
+    imported = import_sessions_json(exported, existing_ids=set())
+
+    assert len(imported) == 2
+    assert [session.title for session in imported] == ["First", "Second"]
+    assert imported[0].messages == [{"role": "user", "content": "Hello"}]
+    assert imported[1].messages == [{"role": "assistant", "content": "Hi"}]
 
 
 def test_import_sessions_json_rejects_invalid_shape():
