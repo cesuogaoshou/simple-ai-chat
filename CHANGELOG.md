@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5 - Conversation UX
+
+- Added automatic titles for new chats.
+- Added recent-first session sorting and title search.
+- Added all-session JSON export.
+- Added last-turn deletion for the active chat.
+
 ## v1.4 - Local Session Management
 
 - Added local multi-session management.

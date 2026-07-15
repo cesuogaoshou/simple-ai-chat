@@ -7,7 +7,10 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - Local web chat UI
 - Local multi-session management
 - JSON session persistence under `.data/`
-- JSON import/export for chat sessions
+- Automatic titles for new chats
+- Recent-first session sorting and title search
+- JSON import/export for individual chats and all sessions
+- Delete the last chat turn
 - Streaming assistant responses
 - Configurable DeepSeek / OpenAI provider
 - Sidebar controls for `temperature` and `max_tokens`
@@ -116,10 +119,15 @@ The sidebar supports:
 
 - Creating a new chat
 - Switching chats
+- Searching chats by title
 - Renaming the active chat
 - Deleting the active chat
+- Deleting the last turn from the active chat
 - Exporting the active chat as JSON
+- Exporting all local chats as JSON
 - Importing chat sessions from JSON
+
+New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list is sorted by most recently updated chat first.
 
 Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
 
