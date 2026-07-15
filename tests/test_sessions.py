@@ -5,11 +5,13 @@ from ai_chat.sessions import (
     delete_session,
     derive_session_title,
     export_session_json,
+    filter_sessions_by_title,
     import_sessions_json,
     load_sessions,
     maybe_auto_title_session,
     rename_session,
     save_sessions,
+    sort_sessions_by_updated_at,
     update_session_messages,
 )
 
@@ -137,6 +139,52 @@ def test_delete_session_selects_remaining_session():
 
     assert sessions == [second]
     assert active_id == second.id
+
+
+def test_sort_sessions_by_updated_at_uses_newest_first():
+    older = ChatSession(
+        id="older",
+        title="Older",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T01:00:00Z",
+    )
+    newer = ChatSession(
+        id="newer",
+        title="Newer",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T02:00:00Z",
+    )
+
+    assert sort_sessions_by_updated_at([older, newer]) == [newer, older]
+
+
+def test_filter_sessions_by_title_matches_case_insensitive_substring():
+    first = ChatSession(
+        id="first",
+        title="Project Notes",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+    second = ChatSession(
+        id="second",
+        title="DeepSeek Debug",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    assert filter_sessions_by_title([first, second], "project") == [first]
+    assert filter_sessions_by_title([first, second], "DEBUG") == [second]
+
+
+def test_filter_sessions_by_title_returns_all_for_blank_query():
+    first = create_session("First")
+    second = create_session("Second")
+
+    assert filter_sessions_by_title([first, second], "   ") == [first, second]
 
 
 def test_save_and_load_sessions(tmp_path):

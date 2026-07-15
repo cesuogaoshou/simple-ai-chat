@@ -94,6 +94,19 @@ def delete_session(
     return remaining, remaining[0].id
 
 
+def sort_sessions_by_updated_at(sessions: list[ChatSession]) -> list[ChatSession]:
+    return sorted(sessions, key=lambda session: session.updated_at, reverse=True)
+
+
+def filter_sessions_by_title(
+    sessions: list[ChatSession], query: str
+) -> list[ChatSession]:
+    cleaned = query.strip().casefold()
+    if not cleaned:
+        return sessions
+    return [session for session in sessions if cleaned in session.title.casefold()]
+
+
 def session_to_dict(session: ChatSession) -> dict[str, object]:
     return {
         "id": session.id,
