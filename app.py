@@ -13,6 +13,7 @@ from ai_chat.chat import (
     stream_chat_completion,
 )
 from ai_chat.config import ProviderConfig, get_provider_diagnostic, load_provider_config
+from ai_chat.presets import DEFAULT_PRESET_ID, get_preset, list_presets, resolve_system_prompt
 from ai_chat.runtime import detect_runtime
 from ai_chat.sessions import (
     ChatSession,
@@ -45,8 +46,16 @@ def main() -> None:
         )
         st.session_state.active_session_id = st.session_state.sessions[0].id
 
+    if "preset_id" not in st.session_state:
+        st.session_state.preset_id = DEFAULT_PRESET_ID
+    if "use_custom_system_prompt" not in st.session_state:
+        st.session_state.use_custom_system_prompt = False
+    if "custom_system_prompt" not in st.session_state:
+        st.session_state.custom_system_prompt = ""
+
     config = load_config_for_ui()
     settings = render_sidebar(config)
+    system_prompt = active_system_prompt()
     session = active_session()
 
     for message in session.messages:
@@ -73,7 +82,13 @@ def main() -> None:
         placeholder = st.empty()
         try:
             client = create_chat_client(config)
-            for chunk in stream_chat_completion(client, config, session.messages, settings):
+            for chunk in stream_chat_completion(
+                client,
+                config,
+                session.messages,
+                settings,
+                system_prompt=system_prompt,
+            ):
                 reply += chunk
                 placeholder.markdown(reply)
         except OpenAIError as exc:
@@ -207,6 +222,40 @@ def session_title_for_id(session_id: str) -> str:
     return "Untitled chat"
 
 
+def active_system_prompt() -> str:
+    custom_prompt = (
+        st.session_state.custom_system_prompt
+        if st.session_state.use_custom_system_prompt
+        else ""
+    )
+    return resolve_system_prompt(st.session_state.preset_id, custom_prompt)
+
+
+def render_prompt_preset_sidebar() -> None:
+    st.subheader("Prompt Preset")
+    presets = list_presets()
+    preset_ids = [preset.id for preset in presets]
+    selected_id = st.selectbox(
+        "Preset",
+        options=preset_ids,
+        index=(
+            preset_ids.index(st.session_state.preset_id)
+            if st.session_state.preset_id in preset_ids
+            else 0
+        ),
+        format_func=lambda preset_id: get_preset(preset_id).name,
+    )
+    st.session_state.preset_id = selected_id
+    st.caption(get_preset(selected_id).description)
+    st.checkbox("Use custom system prompt", key="use_custom_system_prompt")
+    if st.session_state.use_custom_system_prompt:
+        st.text_area(
+            "Custom system prompt",
+            key="custom_system_prompt",
+            height=120,
+        )
+
+
 def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
     with st.sidebar:
         render_sessions_sidebar()
@@ -231,6 +280,9 @@ def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
         st.subheader("Generation")
         temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.7, step=0.1)
         max_tokens = st.number_input("Max tokens", min_value=128, max_value=8192, value=1024, step=128)
+
+        st.divider()
+        render_prompt_preset_sidebar()
 
         st.divider()
         if st.button("Clear chat", use_container_width=True):
