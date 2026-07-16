@@ -17,6 +17,7 @@ class ChatSession:
     messages: list[dict[str, str]]
     created_at: str
     updated_at: str
+    pinned: bool = False
 
 
 def utc_now() -> str:
@@ -44,6 +45,7 @@ def maybe_auto_title_session(session: ChatSession, prompt: str) -> ChatSession:
         messages=session.messages,
         created_at=session.created_at,
         updated_at=utc_now(),
+        pinned=session.pinned,
     )
 
 
@@ -69,6 +71,7 @@ def rename_session(session: ChatSession, title: str) -> ChatSession:
         messages=session.messages,
         created_at=session.created_at,
         updated_at=utc_now(),
+        pinned=session.pinned,
     )
 
 
@@ -81,6 +84,7 @@ def update_session_messages(
         messages=messages,
         created_at=session.created_at,
         updated_at=utc_now(),
+        pinned=session.pinned,
     )
 
 
@@ -129,6 +133,7 @@ def session_to_dict(session: ChatSession) -> dict[str, object]:
         "messages": session.messages,
         "created_at": session.created_at,
         "updated_at": session.updated_at,
+        "pinned": session.pinned,
     }
 
 
@@ -149,6 +154,8 @@ def session_from_dict(
     session_id = str(data.get("id") or uuid4())
     if session_id in existing_ids:
         session_id = str(uuid4())
+    raw_pinned = data.get("pinned", False)
+    pinned = raw_pinned if isinstance(raw_pinned, bool) else False
 
     return ChatSession(
         id=session_id,
@@ -156,6 +163,7 @@ def session_from_dict(
         messages=messages,
         created_at=str(data.get("created_at") or now),
         updated_at=str(data.get("updated_at") or now),
+        pinned=pinned,
     )
 
 

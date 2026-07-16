@@ -1,3 +1,5 @@
+import json
+
 from ai_chat.sessions import (
     ChatSession,
     create_default_session,
@@ -13,6 +15,7 @@ from ai_chat.sessions import (
     maybe_auto_title_session,
     rename_session,
     save_sessions,
+    session_to_dict,
     sort_sessions_by_updated_at,
     update_session_messages,
 )
@@ -28,6 +31,12 @@ def test_create_default_session():
     assert session.updated_at
 
 
+def test_create_default_session_is_unpinned():
+    session = create_default_session()
+
+    assert session.pinned is False
+
+
 def test_create_session_uses_title():
     session = create_session("Project notes")
 
@@ -39,6 +48,12 @@ def test_create_session_falls_back_for_empty_title():
     session = create_session("")
 
     assert session.title == "Untitled chat"
+
+
+def test_create_session_is_unpinned():
+    session = create_session("Project notes")
+
+    assert session.pinned is False
 
 
 def test_derive_session_title_cleans_whitespace():
@@ -121,6 +136,30 @@ def test_update_session_messages_preserves_metadata_and_updates_timestamp():
     assert updated.messages == messages
     assert updated.created_at == "2026-07-14T00:00:00Z"
     assert updated.updated_at != "2026-07-14T00:00:00Z"
+
+
+def test_session_mutations_preserve_pinned_state():
+    session = ChatSession(
+        id="session-1",
+        title="Untitled chat",
+        messages=[{"role": "user", "content": "Hello"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+    )
+
+    titled = maybe_auto_title_session(session, "Explain local storage")
+    renamed = rename_session(session, "Pinned notes")
+    updated = update_session_messages(
+        session,
+        [{"role": "user", "content": "Updated"}],
+    )
+    trimmed = delete_last_turn(session)
+
+    assert titled.pinned is True
+    assert renamed.pinned is True
+    assert updated.pinned is True
+    assert trimmed.pinned is True
 
 
 def test_delete_last_turn_removes_user_and_assistant_pair():
@@ -273,6 +312,48 @@ def test_load_sessions_backs_up_corrupt_file(tmp_path):
     assert (tmp_path / "chats.invalid.json").exists()
 
 
+def test_session_from_old_json_defaults_to_unpinned(tmp_path):
+    path = tmp_path / "chats.json"
+    payload = {
+        "sessions": [
+            {
+                "id": "session-1",
+                "title": "Old backup",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "created_at": "2026-07-15T00:00:00Z",
+                "updated_at": "2026-07-15T00:00:00Z",
+            }
+        ]
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert len(loaded) == 1
+    assert loaded[0].pinned is False
+
+
+def test_session_from_json_uses_false_for_invalid_pinned(tmp_path):
+    path = tmp_path / "chats.json"
+    payload = {
+        "sessions": [
+            {
+                "id": "session-1",
+                "title": "Invalid pinned",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "created_at": "2026-07-15T00:00:00Z",
+                "updated_at": "2026-07-15T00:00:00Z",
+                "pinned": "yes",
+            }
+        ]
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert loaded[0].pinned is False
+
+
 def test_export_session_json_round_trips():
     session = create_session("Exported")
     session.messages.append({"role": "assistant", "content": "Hi"})
@@ -283,6 +364,38 @@ def test_export_session_json_round_trips():
     assert len(imported) == 1
     assert imported[0].title == "Exported"
     assert imported[0].messages == [{"role": "assistant", "content": "Hi"}]
+
+
+def test_session_json_includes_pinned_state():
+    session = ChatSession(
+        id="session-1",
+        title="Pinned",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+    )
+
+    exported = json.loads(export_session_json(session))
+
+    assert session_to_dict(session)["pinned"] is True
+    assert exported["pinned"] is True
+
+
+def test_import_session_json_preserves_pinned_state():
+    session = ChatSession(
+        id="session-1",
+        title="Pinned",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+    )
+
+    imported = import_sessions_json(export_session_json(session), existing_ids=set())
+
+    assert len(imported) == 1
+    assert imported[0].pinned is True
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():
@@ -298,6 +411,22 @@ def test_export_sessions_json_round_trips_multiple_sessions():
     assert [session.title for session in imported] == ["First", "Second"]
     assert imported[0].messages == [{"role": "user", "content": "Hello"}]
     assert imported[1].messages == [{"role": "assistant", "content": "Hi"}]
+
+
+def test_export_sessions_json_preserves_pinned_state():
+    first = ChatSession(
+        id="first",
+        title="Pinned",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+    )
+    second = create_session("Regular")
+
+    imported = import_sessions_json(export_sessions_json([first, second]), existing_ids=set())
+
+    assert [session.pinned for session in imported] == [True, False]
 
 
 def test_import_sessions_json_rejects_invalid_shape():
