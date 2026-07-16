@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.7 - Custom Prompt Presets
+
+- Added local saved custom prompt presets.
+- Added custom preset save and delete controls.
+- Kept custom presets separate from chat session JSON.
+- Documented local custom preset storage.
+
 ## v1.6 - Prompt Presets
 
 - Added built-in prompt presets.
