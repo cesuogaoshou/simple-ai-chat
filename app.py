@@ -36,13 +36,14 @@ from ai_chat.sessions import (
     delete_session,
     export_session_json,
     export_sessions_json,
-    filter_sessions_by_title,
     import_sessions_json,
     load_sessions,
     maybe_auto_title_session,
     rename_session,
     save_sessions,
-    sort_sessions_by_updated_at,
+    search_sessions,
+    set_session_pinned,
+    sort_sessions,
     update_session_messages,
 )
 
@@ -56,9 +57,7 @@ def main() -> None:
     st.title("Simple AI Chat")
 
     if "sessions" not in st.session_state:
-        st.session_state.sessions = sort_sessions_by_updated_at(
-            load_sessions(SESSION_STORE)
-        )
+        st.session_state.sessions = sort_sessions(load_sessions(SESSION_STORE))
         st.session_state.active_session_id = st.session_state.sessions[0].id
 
     if "preset_id" not in st.session_state:
@@ -148,7 +147,7 @@ def active_session() -> ChatSession:
 
 
 def replace_active_session(updated: ChatSession) -> None:
-    st.session_state.sessions = sort_sessions_by_updated_at(
+    st.session_state.sessions = sort_sessions(
         [
             updated if session.id == updated.id else session
             for session in st.session_state.sessions
@@ -161,7 +160,7 @@ def render_sessions_sidebar() -> None:
     st.header("Sessions")
     current = active_session()
     query = st.text_input("Search chats", value="")
-    visible_sessions = filter_sessions_by_title(st.session_state.sessions, query)
+    visible_sessions = search_sessions(st.session_state.sessions, query)
     visible_ids = [session.id for session in visible_sessions]
     if current.id in visible_ids:
         selected_id = st.selectbox(
@@ -189,11 +188,16 @@ def render_sessions_sidebar() -> None:
     if new_title != current.title:
         replace_active_session(rename_session(current, new_title))
 
+    pin_label = "Unpin chat" if current.pinned else "Pin chat"
+    if st.button(pin_label, use_container_width=True):
+        replace_active_session(set_session_pinned(current, not current.pinned))
+        st.rerun()
+
     if st.button("New chat", use_container_width=True):
         session = create_session("Untitled chat")
         st.session_state.sessions.append(session)
         st.session_state.active_session_id = session.id
-        st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
+        st.session_state.sessions = sort_sessions(st.session_state.sessions)
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
@@ -201,7 +205,7 @@ def render_sessions_sidebar() -> None:
         sessions, active_id = delete_session(st.session_state.sessions, active_session().id)
         st.session_state.sessions = sessions
         st.session_state.active_session_id = active_id
-        st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
+        st.session_state.sessions = sort_sessions(st.session_state.sessions)
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
@@ -230,7 +234,7 @@ def render_sessions_sidebar() -> None:
         if imported:
             st.session_state.sessions.extend(imported)
             st.session_state.active_session_id = imported[0].id
-            st.session_state.sessions = sort_sessions_by_updated_at(st.session_state.sessions)
+            st.session_state.sessions = sort_sessions(st.session_state.sessions)
             save_sessions(SESSION_STORE, st.session_state.sessions)
             st.success(f"Imported {len(imported)} session(s).")
             st.rerun()
