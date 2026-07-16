@@ -13,7 +13,21 @@ from ai_chat.chat import (
     stream_chat_completion,
 )
 from ai_chat.config import ProviderConfig, get_provider_diagnostic, load_provider_config
-from ai_chat.presets import DEFAULT_PRESET_ID, get_preset, list_presets, resolve_system_prompt
+from ai_chat.preset_store import (
+    create_custom_preset,
+    custom_to_prompt_preset,
+    delete_custom_preset,
+    is_custom_preset_id,
+    load_custom_presets,
+    save_custom_presets,
+)
+from ai_chat.presets import (
+    BUILT_IN_PRESETS,
+    DEFAULT_PRESET_ID,
+    get_preset,
+    list_presets,
+    resolve_system_prompt,
+)
 from ai_chat.runtime import detect_runtime
 from ai_chat.sessions import (
     ChatSession,
@@ -33,6 +47,7 @@ from ai_chat.sessions import (
 )
 
 SESSION_STORE = Path(".data/chats.json")
+PRESET_STORE = Path(".data/presets.json")
 
 
 def main() -> None:
@@ -52,6 +67,14 @@ def main() -> None:
         st.session_state.use_custom_system_prompt = False
     if "custom_system_prompt" not in st.session_state:
         st.session_state.custom_system_prompt = ""
+    if "custom_presets" not in st.session_state:
+        reserved_ids = {preset.id for preset in BUILT_IN_PRESETS}
+        st.session_state.custom_presets = load_custom_presets(
+            PRESET_STORE,
+            reserved_ids=reserved_ids,
+        )
+    if "custom_preset_name" not in st.session_state:
+        st.session_state.custom_preset_name = ""
 
     config = load_config_for_ui()
     settings = render_sidebar(config)
@@ -222,18 +245,30 @@ def session_title_for_id(session_id: str) -> str:
     return "Untitled chat"
 
 
+def runtime_custom_presets():
+    return [
+        custom_to_prompt_preset(preset)
+        for preset in st.session_state.custom_presets
+    ]
+
+
 def active_system_prompt() -> str:
     custom_prompt = (
         st.session_state.custom_system_prompt
         if st.session_state.use_custom_system_prompt
         else ""
     )
-    return resolve_system_prompt(st.session_state.preset_id, custom_prompt)
+    return resolve_system_prompt(
+        st.session_state.preset_id,
+        custom_prompt,
+        custom_presets=runtime_custom_presets(),
+    )
 
 
 def render_prompt_preset_sidebar() -> None:
     st.subheader("Prompt Preset")
-    presets = list_presets()
+    custom_presets = runtime_custom_presets()
+    presets = list_presets(custom_presets)
     preset_ids = [preset.id for preset in presets]
     selected_id = st.selectbox(
         "Preset",
@@ -243,10 +278,10 @@ def render_prompt_preset_sidebar() -> None:
             if st.session_state.preset_id in preset_ids
             else 0
         ),
-        format_func=lambda preset_id: get_preset(preset_id).name,
+        format_func=lambda preset_id: get_preset(preset_id, custom_presets).name,
     )
     st.session_state.preset_id = selected_id
-    st.caption(get_preset(selected_id).description)
+    st.caption(get_preset(selected_id, custom_presets).description)
     st.checkbox("Use custom system prompt", key="use_custom_system_prompt")
     if st.session_state.use_custom_system_prompt:
         st.text_area(
@@ -254,6 +289,35 @@ def render_prompt_preset_sidebar() -> None:
             key="custom_system_prompt",
             height=120,
         )
+        st.text_input("Custom preset name", key="custom_preset_name")
+        if st.button("Save as preset", use_container_width=True):
+            existing_ids = {preset.id for preset in BUILT_IN_PRESETS}
+            existing_ids.update(preset.id for preset in st.session_state.custom_presets)
+            preset = create_custom_preset(
+                st.session_state.custom_preset_name,
+                st.session_state.custom_system_prompt,
+                existing_ids,
+            )
+            if preset is None:
+                st.warning("Enter a custom system prompt before saving a preset.")
+            else:
+                st.session_state.custom_presets.append(preset)
+                save_custom_presets(PRESET_STORE, st.session_state.custom_presets)
+                st.session_state.preset_id = preset.id
+                st.session_state.use_custom_system_prompt = False
+                st.session_state.custom_system_prompt = ""
+                st.session_state.custom_preset_name = ""
+                st.rerun()
+
+    if is_custom_preset_id(selected_id):
+        if st.button("Delete custom preset", use_container_width=True):
+            st.session_state.custom_presets = delete_custom_preset(
+                st.session_state.custom_presets,
+                selected_id,
+            )
+            save_custom_presets(PRESET_STORE, st.session_state.custom_presets)
+            st.session_state.preset_id = DEFAULT_PRESET_ID
+            st.rerun()
 
 
 def render_sidebar(config: ProviderConfig | None) -> GenerationSettings:
