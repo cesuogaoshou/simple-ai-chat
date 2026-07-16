@@ -36,15 +36,21 @@ from ai_chat.sessions import (
     delete_session,
     export_session_json,
     export_sessions_json,
+    filter_sessions_by_tag,
+    format_session_tags,
     import_sessions_json,
+    list_session_tags,
     load_sessions,
     maybe_auto_title_session,
+    normalize_session_tags,
     rename_session,
     save_sessions,
     search_sessions,
     set_session_pinned,
     sort_sessions,
     update_session_messages,
+    update_session_note,
+    update_session_tags,
 )
 
 SESSION_STORE = Path(".data/chats.json")
@@ -160,7 +166,13 @@ def render_sessions_sidebar() -> None:
     st.header("Sessions")
     current = active_session()
     query = st.text_input("Search chats", value="")
-    visible_sessions = search_sessions(st.session_state.sessions, query)
+    tag_options = ["All tags", *list_session_tags(st.session_state.sessions)]
+    selected_tag = st.selectbox("Filter tag", options=tag_options)
+    tag_filter = "" if selected_tag == "All tags" else selected_tag
+    visible_sessions = filter_sessions_by_tag(
+        search_sessions(st.session_state.sessions, query),
+        tag_filter,
+    )
     visible_ids = [session.id for session in visible_sessions]
     if current.id in visible_ids:
         selected_id = st.selectbox(
@@ -191,6 +203,17 @@ def render_sessions_sidebar() -> None:
     pin_label = "Unpin chat" if current.pinned else "Pin chat"
     if st.button(pin_label, use_container_width=True):
         replace_active_session(set_session_pinned(current, not current.pinned))
+        st.rerun()
+
+    tag_text = st.text_input("Chat tags", value=format_session_tags(current.tags))
+    updated_tags = normalize_session_tags(tag_text)
+    if updated_tags != current.tags:
+        replace_active_session(update_session_tags(current, updated_tags))
+        st.rerun()
+
+    note = st.text_area("Chat note", value=current.note)
+    if note.strip() != current.note:
+        replace_active_session(update_session_note(current, note))
         st.rerun()
 
     if st.button("New chat", use_container_width=True):
