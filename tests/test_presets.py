@@ -1,6 +1,7 @@
 from ai_chat.presets import (
     BUILT_IN_PRESETS,
     DEFAULT_PRESET_ID,
+    PromptPreset,
     get_preset,
     list_presets,
     resolve_system_prompt,
@@ -36,3 +37,47 @@ def test_resolve_system_prompt_prefers_non_empty_custom_prompt():
 
 def test_resolve_system_prompt_falls_back_for_blank_custom_prompt():
     assert resolve_system_prompt("translator", "   ") == get_preset("translator").system_prompt
+
+
+def custom_preset() -> PromptPreset:
+    return PromptPreset(
+        id="custom_reviewer",
+        name="Reviewer",
+        description="Custom prompt preset.",
+        system_prompt="Review code carefully.",
+    )
+
+
+def test_list_presets_appends_custom_presets_after_built_ins():
+    presets = list_presets([custom_preset()])
+
+    assert presets[: len(BUILT_IN_PRESETS)] == list(BUILT_IN_PRESETS)
+    assert presets[-1] == custom_preset()
+
+
+def test_get_preset_returns_custom_preset():
+    preset = get_preset("custom_reviewer", [custom_preset()])
+
+    assert preset == custom_preset()
+
+
+def test_get_preset_falls_back_with_custom_presets_present():
+    assert get_preset("missing", [custom_preset()]) == get_preset(DEFAULT_PRESET_ID)
+
+
+def test_resolve_system_prompt_uses_custom_preset():
+    assert (
+        resolve_system_prompt("custom_reviewer", custom_presets=[custom_preset()])
+        == "Review code carefully."
+    )
+
+
+def test_resolve_system_prompt_custom_text_overrides_custom_preset():
+    assert (
+        resolve_system_prompt(
+            "custom_reviewer",
+            "  One-off prompt  ",
+            custom_presets=[custom_preset()],
+        )
+        == "One-off prompt"
+    )

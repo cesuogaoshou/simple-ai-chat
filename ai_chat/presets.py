@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 DEFAULT_PRESET_ID = "general"
@@ -61,19 +62,25 @@ BUILT_IN_PRESETS = (
 )
 
 
-def list_presets() -> list[PromptPreset]:
-    return list(BUILT_IN_PRESETS)
+def list_presets(custom_presets: Sequence[PromptPreset] = ()) -> list[PromptPreset]:
+    return [*BUILT_IN_PRESETS, *custom_presets]
 
 
-def get_preset(preset_id: str) -> PromptPreset:
-    for preset in BUILT_IN_PRESETS:
+def get_preset(
+    preset_id: str, custom_presets: Sequence[PromptPreset] = ()
+) -> PromptPreset:
+    for preset in list_presets(custom_presets):
         if preset.id == preset_id:
             return preset
     return BUILT_IN_PRESETS[0]
 
 
-def resolve_system_prompt(preset_id: str, custom_prompt: str = "") -> str:
+def resolve_system_prompt(
+    preset_id: str,
+    custom_prompt: str = "",
+    custom_presets: Sequence[PromptPreset] = (),
+) -> str:
     cleaned = custom_prompt.strip()
     if cleaned:
         return cleaned
-    return get_preset(preset_id).system_prompt
+    return get_preset(preset_id, custom_presets).system_prompt
