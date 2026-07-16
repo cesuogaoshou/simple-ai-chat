@@ -113,8 +113,27 @@ def delete_session(
     return remaining, remaining[0].id
 
 
+def set_session_pinned(session: ChatSession, pinned: bool) -> ChatSession:
+    return ChatSession(
+        id=session.id,
+        title=session.title,
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+        pinned=pinned,
+    )
+
+
+def sort_sessions(sessions: list[ChatSession]) -> list[ChatSession]:
+    return sorted(
+        sessions,
+        key=lambda session: (session.pinned, session.updated_at),
+        reverse=True,
+    )
+
+
 def sort_sessions_by_updated_at(sessions: list[ChatSession]) -> list[ChatSession]:
-    return sorted(sessions, key=lambda session: session.updated_at, reverse=True)
+    return sort_sessions(sessions)
 
 
 def filter_sessions_by_title(

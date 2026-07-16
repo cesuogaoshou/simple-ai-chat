@@ -16,6 +16,8 @@ from ai_chat.sessions import (
     rename_session,
     save_sessions,
     session_to_dict,
+    set_session_pinned,
+    sort_sessions,
     sort_sessions_by_updated_at,
     update_session_messages,
 )
@@ -238,23 +240,91 @@ def test_delete_session_selects_remaining_session():
     assert active_id == second.id
 
 
-def test_sort_sessions_by_updated_at_uses_newest_first():
-    older = ChatSession(
-        id="older",
-        title="Older",
+def test_set_session_pinned_updates_state_and_timestamp():
+    session = ChatSession(
+        id="session-1",
+        title="Chat",
+        messages=[{"role": "user", "content": "Hello"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=False,
+    )
+
+    updated = set_session_pinned(session, True)
+
+    assert updated.id == "session-1"
+    assert updated.title == "Chat"
+    assert updated.messages == [{"role": "user", "content": "Hello"}]
+    assert updated.created_at == "2026-07-15T00:00:00Z"
+    assert updated.pinned is True
+    assert updated.updated_at != "2026-07-15T00:00:00Z"
+
+
+def test_sort_sessions_orders_pinned_first_then_newest():
+    pinned_older = ChatSession(
+        id="pinned-older",
+        title="Pinned Older",
         messages=[],
         created_at="2026-07-15T00:00:00Z",
         updated_at="2026-07-15T01:00:00Z",
+        pinned=True,
     )
-    newer = ChatSession(
-        id="newer",
-        title="Newer",
+    pinned_newer = ChatSession(
+        id="pinned-newer",
+        title="Pinned Newer",
         messages=[],
         created_at="2026-07-15T00:00:00Z",
         updated_at="2026-07-15T02:00:00Z",
+        pinned=True,
+    )
+    regular_newer = ChatSession(
+        id="regular-newer",
+        title="Regular Newer",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T03:00:00Z",
+        pinned=False,
+    )
+    regular_older = ChatSession(
+        id="regular-older",
+        title="Regular Older",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:30:00Z",
+        pinned=False,
     )
 
-    assert sort_sessions_by_updated_at([older, newer]) == [newer, older]
+    sorted_sessions = sort_sessions(
+        [regular_newer, pinned_older, regular_older, pinned_newer]
+    )
+
+    assert sorted_sessions == [
+        pinned_newer,
+        pinned_older,
+        regular_newer,
+        regular_older,
+    ]
+
+
+def test_sort_sessions_by_updated_at_wraps_sort_sessions():
+    pinned = ChatSession(
+        id="pinned",
+        title="Pinned",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T01:00:00Z",
+        pinned=True,
+    )
+    regular = ChatSession(
+        id="regular",
+        title="Regular",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T02:00:00Z",
+        pinned=False,
+    )
+
+    assert sort_sessions_by_updated_at([regular, pinned]) == [pinned, regular]
 
 
 def test_filter_sessions_by_title_matches_case_insensitive_substring():
