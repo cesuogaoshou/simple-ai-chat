@@ -15,6 +15,7 @@ from ai_chat.sessions import (
     maybe_auto_title_session,
     rename_session,
     save_sessions,
+    search_sessions,
     session_to_dict,
     set_session_pinned,
     sort_sessions,
@@ -327,7 +328,7 @@ def test_sort_sessions_by_updated_at_wraps_sort_sessions():
     assert sort_sessions_by_updated_at([regular, pinned]) == [pinned, regular]
 
 
-def test_filter_sessions_by_title_matches_case_insensitive_substring():
+def test_search_sessions_matches_title_case_insensitive_substring():
     first = ChatSession(
         id="first",
         title="Project Notes",
@@ -343,15 +344,72 @@ def test_filter_sessions_by_title_matches_case_insensitive_substring():
         updated_at="2026-07-15T00:00:00Z",
     )
 
-    assert filter_sessions_by_title([first, second], "project") == [first]
-    assert filter_sessions_by_title([first, second], "DEBUG") == [second]
+    assert search_sessions([first, second], "project") == [first]
+    assert search_sessions([first, second], "DEBUG") == [second]
 
 
-def test_filter_sessions_by_title_returns_all_for_blank_query():
+def test_search_sessions_matches_user_message_content():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[{"role": "user", "content": "Plan the release checklist"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[{"role": "user", "content": "Debug provider settings"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    assert search_sessions([first, second], "release") == [first]
+
+
+def test_search_sessions_matches_assistant_message_content():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[{"role": "assistant", "content": "Use Streamlit secrets."}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[{"role": "assistant", "content": "Write tests first."}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    assert search_sessions([first, second], "secrets") == [first]
+
+
+def test_search_sessions_returns_all_for_blank_query():
     first = create_session("First")
     second = create_session("Second")
 
-    assert filter_sessions_by_title([first, second], "   ") == [first, second]
+    assert search_sessions([first, second], "   ") == [first, second]
+
+
+def test_filter_sessions_by_title_keeps_title_only_behavior():
+    first = ChatSession(
+        id="first",
+        title="Project Notes",
+        messages=[{"role": "user", "content": "DeepSeek"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+    second = ChatSession(
+        id="second",
+        title="DeepSeek Debug",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+    )
+
+    assert filter_sessions_by_title([first, second], "deepseek") == [second]
 
 
 def test_save_and_load_sessions(tmp_path):

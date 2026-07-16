@@ -136,6 +136,23 @@ def sort_sessions_by_updated_at(sessions: list[ChatSession]) -> list[ChatSession
     return sort_sessions(sessions)
 
 
+def search_sessions(sessions: list[ChatSession], query: str) -> list[ChatSession]:
+    cleaned = query.strip().casefold()
+    if not cleaned:
+        return sessions
+
+    return [
+        session
+        for session in sessions
+        if cleaned in session.title.casefold()
+        or any(
+            cleaned in str(message.get("content", "")).casefold()
+            for message in session.messages
+            if isinstance(message, dict)
+        )
+    ]
+
+
 def filter_sessions_by_title(
     sessions: list[ChatSession], query: str
 ) -> list[ChatSession]:
