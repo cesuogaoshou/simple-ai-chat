@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6 - Prompt Presets
+
+- Added built-in prompt presets.
+- Added optional custom system prompts.
+- Added system prompt support to chat request construction.
+- Documented preset behavior and limitations.
+
 ## v1.5 - Conversation UX
 
 - Added automatic titles for new chats.

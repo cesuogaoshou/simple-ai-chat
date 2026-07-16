@@ -12,6 +12,7 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - JSON import/export for individual chats and all sessions
 - Delete the last chat turn
 - Streaming assistant responses
+- Built-in prompt presets and custom system prompts
 - Configurable DeepSeek / OpenAI provider
 - Sidebar controls for `temperature` and `max_tokens`
 - Markdown export for the current chat
@@ -84,6 +85,18 @@ OPENAI_MODEL=gpt-5.6
 | `OPENAI_MODEL` | OpenAI model name. Default: `gpt-5.6` |
 
 The sidebar shows whether the active provider API key is configured. It never displays the key value or a masked key fragment.
+
+## Prompt Presets
+
+The sidebar includes built-in prompt presets for common workflows:
+
+- `General Assistant`
+- `Translator`
+- `Code Explainer`
+- `Requirement Analyst`
+- `Writing Polish`
+
+The selected preset controls the system prompt sent with future model requests. You can also enable `Use custom system prompt` and enter a one-off custom instruction. Custom system prompts are local UI state in v1.6; they are not saved as named reusable presets and they are not stored in `.data/chats.json`.
 
 ## Generation Settings
 
