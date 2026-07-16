@@ -10,9 +10,12 @@ from ai_chat.sessions import (
     export_session_json,
     export_sessions_json,
     filter_sessions_by_title,
+    format_session_tags,
     import_sessions_json,
+    list_session_tags,
     load_sessions,
     maybe_auto_title_session,
+    normalize_session_tags,
     rename_session,
     save_sessions,
     search_sessions,
@@ -21,6 +24,8 @@ from ai_chat.sessions import (
     sort_sessions,
     sort_sessions_by_updated_at,
     update_session_messages,
+    update_session_note,
+    update_session_tags,
 )
 
 
@@ -657,6 +662,76 @@ def test_import_session_json_preserves_tags_and_note():
 
     assert imported[0].tags == ["work"]
     assert imported[0].note == "Important context."
+
+
+def test_normalize_session_tags_splits_cleans_and_deduplicates():
+    assert normalize_session_tags(" work, bug, Work, , research ") == [
+        "work",
+        "bug",
+        "research",
+    ]
+
+
+def test_format_session_tags_joins_tags_for_display():
+    assert format_session_tags(["work", "bug"]) == "work, bug"
+
+
+def test_update_session_tags_preserves_metadata_and_updates_timestamp():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+        tags=["old"],
+        note="Keep note.",
+    )
+
+    updated = update_session_tags(session, ["work", "bug"])
+
+    assert updated.tags == ["work", "bug"]
+    assert updated.note == "Keep note."
+    assert updated.pinned is True
+    assert updated.updated_at != "2026-07-15T00:00:00Z"
+
+
+def test_update_session_note_strips_outer_whitespace_and_updates_timestamp():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["work"],
+    )
+
+    updated = update_session_note(session, " Follow up ")
+
+    assert updated.tags == ["work"]
+    assert updated.note == "Follow up"
+    assert updated.updated_at != "2026-07-15T00:00:00Z"
+
+
+def test_list_session_tags_returns_unique_sorted_tags():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["work", "Bug"],
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["bug", "research"],
+    )
+
+    assert list_session_tags([first, second]) == ["Bug", "research", "work"]
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():

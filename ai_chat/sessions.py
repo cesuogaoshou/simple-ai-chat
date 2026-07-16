@@ -43,6 +43,14 @@ def clean_tags(tags: list[object]) -> list[str]:
     return cleaned_tags
 
 
+def normalize_session_tags(text: str) -> list[str]:
+    return clean_tags(text.split(","))
+
+
+def format_session_tags(tags: list[str]) -> str:
+    return ", ".join(tags)
+
+
 def derive_session_title(text: str, max_length: int = 30) -> str:
     cleaned = re.sub(r"\s+", " ", text).strip()
     if not cleaned:
@@ -146,6 +154,32 @@ def set_session_pinned(session: ChatSession, pinned: bool) -> ChatSession:
     )
 
 
+def update_session_tags(session: ChatSession, tags: list[str]) -> ChatSession:
+    return ChatSession(
+        id=session.id,
+        title=session.title,
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+        pinned=session.pinned,
+        tags=clean_tags(tags),
+        note=session.note,
+    )
+
+
+def update_session_note(session: ChatSession, note: str) -> ChatSession:
+    return ChatSession(
+        id=session.id,
+        title=session.title,
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+        pinned=session.pinned,
+        tags=session.tags,
+        note=note.strip(),
+    )
+
+
 def sort_sessions(sessions: list[ChatSession]) -> list[ChatSession]:
     return sorted(
         sessions,
@@ -182,6 +216,14 @@ def filter_sessions_by_title(
     if not cleaned:
         return sessions
     return [session for session in sessions if cleaned in session.title.casefold()]
+
+
+def list_session_tags(sessions: list[ChatSession]) -> list[str]:
+    tags_by_key = {}
+    for session in sessions:
+        for tag in session.tags:
+            tags_by_key.setdefault(tag.casefold(), tag)
+    return sorted(tags_by_key.values(), key=str.casefold)
 
 
 def session_to_dict(session: ChatSession) -> dict[str, object]:
