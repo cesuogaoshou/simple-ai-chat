@@ -226,6 +226,19 @@ def list_session_tags(sessions: list[ChatSession]) -> list[str]:
     return sorted(tags_by_key.values(), key=str.casefold)
 
 
+def filter_sessions_by_tag(
+    sessions: list[ChatSession], tag: str
+) -> list[ChatSession]:
+    cleaned = tag.strip().casefold()
+    if not cleaned:
+        return sessions
+    return [
+        session
+        for session in sessions
+        if any(existing.casefold() == cleaned for existing in session.tags)
+    ]
+
+
 def session_to_dict(session: ChatSession) -> dict[str, object]:
     return {
         "id": session.id,

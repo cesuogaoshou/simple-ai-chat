@@ -9,6 +9,7 @@ from ai_chat.sessions import (
     derive_session_title,
     export_session_json,
     export_sessions_json,
+    filter_sessions_by_tag,
     filter_sessions_by_title,
     format_session_tags,
     import_sessions_json,
@@ -732,6 +733,34 @@ def test_list_session_tags_returns_unique_sorted_tags():
     )
 
     assert list_session_tags([first, second]) == ["Bug", "research", "work"]
+
+
+def test_filter_sessions_by_tag_matches_case_insensitive_tag():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["Work"],
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["research"],
+    )
+
+    assert filter_sessions_by_tag([first, second], "work") == [first]
+
+
+def test_filter_sessions_by_tag_returns_all_for_blank_tag():
+    first = create_session("First")
+    second = create_session("Second")
+
+    assert filter_sessions_by_tag([first, second], "   ") == [first, second]
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():
