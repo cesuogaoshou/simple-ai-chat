@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.8 - Conversation Library
+
+- Added pinned local chat sessions.
+- Added title and message-content session search.
+- Preserved pinned state in chat JSON import and export.
+- Kept old chat JSON compatible by defaulting missing pinned state to unpinned.
+
 ## v1.7 - Custom Prompt Presets
 
 - Added local saved custom prompt presets.

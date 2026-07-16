@@ -8,7 +8,7 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - Local multi-session management
 - JSON session persistence under `.data/`
 - Automatic titles for new chats
-- Recent-first session sorting and title search
+- Pinned sessions, recent-first sorting, and title/message search
 - JSON import/export for individual chats and all sessions
 - Delete the last chat turn
 - Streaming assistant responses
@@ -134,7 +134,8 @@ The sidebar supports:
 
 - Creating a new chat
 - Switching chats
-- Searching chats by title
+- Searching chats by title and message content
+- Pinning important chats above regular chats
 - Renaming the active chat
 - Deleting the active chat
 - Deleting the last turn from the active chat
@@ -142,7 +143,9 @@ The sidebar supports:
 - Exporting all local chats as JSON
 - Importing chat sessions from JSON
 
-New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list is sorted by most recently updated chat first.
+New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list shows pinned chats first, then sorts each group by most recently updated chat first. Pinned state is stored in `.data/chats.json`.
+
+The `Search chats` box searches chat titles and local message content. Older chat JSON files that do not include pinned state still load and import as unpinned chats.
 
 Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
 
@@ -175,6 +178,8 @@ DEEPSEEK_MODEL = "deepseek-v4-pro"
 |-- ai_chat/
 |   |-- chat.py              # Chat Completions helpers and export formatting
 |   |-- config.py            # Provider configuration parsing
+|   |-- preset_store.py      # Local custom prompt preset storage helpers
+|   |-- presets.py           # Built-in prompt presets and prompt resolution
 |   |-- runtime.py           # Runtime environment detection
 |   `-- sessions.py          # Local chat session storage helpers
 |-- .streamlit/
