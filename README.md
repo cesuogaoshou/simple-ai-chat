@@ -8,7 +8,7 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - Local multi-session management
 - JSON session persistence under `.data/`
 - Automatic titles for new chats
-- Pinned sessions, recent-first sorting, and title/message search
+- Pinned sessions, tags, notes, recent-first sorting, and title/message search
 - JSON import/export for individual chats and all sessions
 - Delete the last chat turn
 - Streaming assistant responses
@@ -135,6 +135,8 @@ The sidebar supports:
 - Creating a new chat
 - Switching chats
 - Searching chats by title and message content
+- Editing chat tags and notes
+- Filtering chats by tag
 - Pinning important chats above regular chats
 - Renaming the active chat
 - Deleting the active chat
@@ -146,6 +148,8 @@ The sidebar supports:
 New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list shows pinned chats first, then sorts each group by most recently updated chat first. Pinned state is stored in `.data/chats.json`.
 
 The `Search chats` box searches chat titles and local message content. Older chat JSON files that do not include pinned state still load and import as unpinned chats.
+
+Chat tags and notes are stored in `.data/chats.json`. Older chat JSON files that do not include tags or notes still load and import with empty metadata.
 
 Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
 

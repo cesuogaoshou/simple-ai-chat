@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.9 - Session Tags and Notes
+
+- Added local chat session tags.
+- Added local chat session notes.
+- Added tag filtering in the Sessions sidebar.
+- Kept old chat JSON compatible by defaulting missing tags and notes to empty metadata.
+
 ## v1.8 - Conversation Library
 
 - Added pinned local chat sessions.
