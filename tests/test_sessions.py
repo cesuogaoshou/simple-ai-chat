@@ -38,6 +38,8 @@ def test_create_default_session_is_unpinned():
     session = create_default_session()
 
     assert session.pinned is False
+    assert session.tags == []
+    assert session.note == ""
 
 
 def test_create_session_uses_title():
@@ -57,6 +59,8 @@ def test_create_session_is_unpinned():
     session = create_session("Project notes")
 
     assert session.pinned is False
+    assert session.tags == []
+    assert session.note == ""
 
 
 def test_derive_session_title_cleans_whitespace():
@@ -163,6 +167,32 @@ def test_session_mutations_preserve_pinned_state():
     assert renamed.pinned is True
     assert updated.pinned is True
     assert trimmed.pinned is True
+
+
+def test_session_mutations_preserve_tags_and_note():
+    session = ChatSession(
+        id="session-1",
+        title="Untitled chat",
+        messages=[{"role": "user", "content": "Hello"}],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        pinned=True,
+        tags=["work", "bug"],
+        note="Needs follow-up.",
+    )
+
+    titled = maybe_auto_title_session(session, "Explain local storage")
+    renamed = rename_session(session, "Pinned notes")
+    updated = update_session_messages(
+        session,
+        [{"role": "user", "content": "Updated"}],
+    )
+    pinned = set_session_pinned(session, False)
+    trimmed = delete_last_turn(session)
+
+    for changed in [titled, renamed, updated, pinned, trimmed]:
+        assert changed.tags == ["work", "bug"]
+        assert changed.note == "Needs follow-up."
 
 
 def test_delete_last_turn_removes_user_and_assistant_pair():
@@ -482,6 +512,73 @@ def test_session_from_json_uses_false_for_invalid_pinned(tmp_path):
     assert loaded[0].pinned is False
 
 
+def test_session_from_old_json_defaults_tags_and_note(tmp_path):
+    path = tmp_path / "chats.json"
+    payload = {
+        "sessions": [
+            {
+                "id": "session-1",
+                "title": "Old backup",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "created_at": "2026-07-15T00:00:00Z",
+                "updated_at": "2026-07-15T00:00:00Z",
+            }
+        ]
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert loaded[0].tags == []
+    assert loaded[0].note == ""
+
+
+def test_session_from_json_cleans_tags_and_note(tmp_path):
+    path = tmp_path / "chats.json"
+    payload = {
+        "sessions": [
+            {
+                "id": "session-1",
+                "title": "Tagged",
+                "messages": [],
+                "created_at": "2026-07-15T00:00:00Z",
+                "updated_at": "2026-07-15T00:00:00Z",
+                "tags": [" work ", "", "Bug", "work"],
+                "note": " Follow up ",
+            }
+        ]
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert loaded[0].tags == ["work", "Bug"]
+    assert loaded[0].note == " Follow up "
+
+
+def test_session_from_json_uses_empty_tags_for_invalid_tags(tmp_path):
+    path = tmp_path / "chats.json"
+    payload = {
+        "sessions": [
+            {
+                "id": "session-1",
+                "title": "Invalid tags",
+                "messages": [],
+                "created_at": "2026-07-15T00:00:00Z",
+                "updated_at": "2026-07-15T00:00:00Z",
+                "tags": "work",
+                "note": 123,
+            }
+        ]
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_sessions(path)
+
+    assert loaded[0].tags == []
+    assert loaded[0].note == "123"
+
+
 def test_export_session_json_round_trips():
     session = create_session("Exported")
     session.messages.append({"role": "assistant", "content": "Hi"})
@@ -510,6 +607,25 @@ def test_session_json_includes_pinned_state():
     assert exported["pinned"] is True
 
 
+def test_session_json_includes_tags_and_note():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["work"],
+        note="Important context.",
+    )
+
+    exported = json.loads(export_session_json(session))
+
+    assert session_to_dict(session)["tags"] == ["work"]
+    assert session_to_dict(session)["note"] == "Important context."
+    assert exported["tags"] == ["work"]
+    assert exported["note"] == "Important context."
+
+
 def test_import_session_json_preserves_pinned_state():
     session = ChatSession(
         id="session-1",
@@ -524,6 +640,23 @@ def test_import_session_json_preserves_pinned_state():
 
     assert len(imported) == 1
     assert imported[0].pinned is True
+
+
+def test_import_session_json_preserves_tags_and_note():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-15T00:00:00Z",
+        updated_at="2026-07-15T00:00:00Z",
+        tags=["work"],
+        note="Important context.",
+    )
+
+    imported = import_sessions_json(export_session_json(session), existing_ids=set())
+
+    assert imported[0].tags == ["work"]
+    assert imported[0].note == "Important context."
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():

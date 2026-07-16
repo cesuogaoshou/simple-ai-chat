@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -18,6 +18,8 @@ class ChatSession:
     created_at: str
     updated_at: str
     pinned: bool = False
+    tags: list[str] = field(default_factory=list)
+    note: str = ""
 
 
 def utc_now() -> str:
@@ -27,6 +29,18 @@ def utc_now() -> str:
 def safe_title(title: str) -> str:
     cleaned = title.strip()
     return cleaned or DEFAULT_TITLE
+
+
+def clean_tags(tags: list[object]) -> list[str]:
+    cleaned_tags = []
+    seen = set()
+    for tag in tags:
+        cleaned = str(tag).strip()
+        folded = cleaned.casefold()
+        if cleaned and folded not in seen:
+            cleaned_tags.append(cleaned)
+            seen.add(folded)
+    return cleaned_tags
 
 
 def derive_session_title(text: str, max_length: int = 30) -> str:
@@ -46,6 +60,8 @@ def maybe_auto_title_session(session: ChatSession, prompt: str) -> ChatSession:
         created_at=session.created_at,
         updated_at=utc_now(),
         pinned=session.pinned,
+        tags=session.tags,
+        note=session.note,
     )
 
 
@@ -72,6 +88,8 @@ def rename_session(session: ChatSession, title: str) -> ChatSession:
         created_at=session.created_at,
         updated_at=utc_now(),
         pinned=session.pinned,
+        tags=session.tags,
+        note=session.note,
     )
 
 
@@ -85,6 +103,8 @@ def update_session_messages(
         created_at=session.created_at,
         updated_at=utc_now(),
         pinned=session.pinned,
+        tags=session.tags,
+        note=session.note,
     )
 
 
@@ -121,6 +141,8 @@ def set_session_pinned(session: ChatSession, pinned: bool) -> ChatSession:
         created_at=session.created_at,
         updated_at=utc_now(),
         pinned=pinned,
+        tags=session.tags,
+        note=session.note,
     )
 
 
@@ -170,6 +192,8 @@ def session_to_dict(session: ChatSession) -> dict[str, object]:
         "created_at": session.created_at,
         "updated_at": session.updated_at,
         "pinned": session.pinned,
+        "tags": session.tags,
+        "note": session.note,
     }
 
 
@@ -192,6 +216,9 @@ def session_from_dict(
         session_id = str(uuid4())
     raw_pinned = data.get("pinned", False)
     pinned = raw_pinned if isinstance(raw_pinned, bool) else False
+    raw_tags = data.get("tags", [])
+    tags = clean_tags(raw_tags) if isinstance(raw_tags, list) else []
+    note = data.get("note", "")
 
     return ChatSession(
         id=session_id,
@@ -200,6 +227,8 @@ def session_from_dict(
         created_at=str(data.get("created_at") or now),
         updated_at=str(data.get("updated_at") or now),
         pinned=pinned,
+        tags=tags,
+        note=note if isinstance(note, str) else str(note),
     )
 
 
