@@ -36,7 +36,7 @@ from ai_chat.sessions import (
     delete_session,
     export_session_json,
     export_sessions_json,
-    filter_sessions_by_tag,
+    filter_visible_sessions,
     format_session_tags,
     import_sessions_json,
     list_session_tags,
@@ -45,7 +45,6 @@ from ai_chat.sessions import (
     normalize_session_tags,
     rename_session,
     save_sessions,
-    search_sessions,
     set_session_pinned,
     sort_sessions,
     update_session_messages,
@@ -80,6 +79,10 @@ def main() -> None:
         )
     if "custom_preset_name" not in st.session_state:
         st.session_state.custom_preset_name = ""
+    if "session_search_query" not in st.session_state:
+        st.session_state.session_search_query = ""
+    if "session_tag_filter" not in st.session_state:
+        st.session_state.session_tag_filter = "All tags"
 
     config = load_config_for_ui()
     settings = render_sidebar(config)
@@ -165,12 +168,19 @@ def replace_active_session(updated: ChatSession) -> None:
 def render_sessions_sidebar() -> None:
     st.header("Sessions")
     current = active_session()
-    query = st.text_input("Search chats", value="")
+    query = st.text_input("Search chats", key="session_search_query")
     tag_options = ["All tags", *list_session_tags(st.session_state.sessions)]
-    selected_tag = st.selectbox("Filter tag", options=tag_options)
+    if st.session_state.session_tag_filter not in tag_options:
+        st.session_state.session_tag_filter = "All tags"
+    selected_tag = st.selectbox(
+        "Filter tag",
+        options=tag_options,
+        key="session_tag_filter",
+    )
     tag_filter = "" if selected_tag == "All tags" else selected_tag
-    visible_sessions = filter_sessions_by_tag(
-        search_sessions(st.session_state.sessions, query),
+    visible_sessions = filter_visible_sessions(
+        st.session_state.sessions,
+        query,
         tag_filter,
     )
     visible_ids = [session.id for session in visible_sessions]

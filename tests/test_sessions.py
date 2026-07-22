@@ -11,6 +11,7 @@ from ai_chat.sessions import (
     export_sessions_json,
     filter_sessions_by_tag,
     filter_sessions_by_title,
+    filter_visible_sessions,
     format_session_tags,
     import_sessions_json,
     list_session_tags,
@@ -761,6 +762,42 @@ def test_filter_sessions_by_tag_returns_all_for_blank_tag():
     second = create_session("Second")
 
     assert filter_sessions_by_tag([first, second], "   ") == [first, second]
+
+
+def test_filter_visible_sessions_applies_search_then_tag_filter():
+    first = ChatSession(
+        id="first",
+        title="Release planning",
+        messages=[{"role": "assistant", "content": "Prepare launch notes"}],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["work"],
+    )
+    second = ChatSession(
+        id="second",
+        title="Release bug",
+        messages=[{"role": "user", "content": "Investigate provider issue"}],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["bug"],
+    )
+    third = ChatSession(
+        id="third",
+        title="Personal notes",
+        messages=[{"role": "user", "content": "Release reading list"}],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["personal"],
+    )
+
+    assert filter_visible_sessions([first, second, third], "release", "bug") == [second]
+
+
+def test_filter_visible_sessions_returns_all_for_blank_filters():
+    first = create_session("First")
+    second = create_session("Second")
+
+    assert filter_visible_sessions([first, second], "   ", "   ") == [first, second]
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():

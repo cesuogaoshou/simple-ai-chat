@@ -239,6 +239,14 @@ def filter_sessions_by_tag(
     ]
 
 
+def filter_visible_sessions(
+    sessions: list[ChatSession],
+    query: str,
+    tag: str,
+) -> list[ChatSession]:
+    return filter_sessions_by_tag(search_sessions(sessions, query), tag)
+
+
 def session_to_dict(session: ChatSession) -> dict[str, object]:
     return {
         "id": session.id,
