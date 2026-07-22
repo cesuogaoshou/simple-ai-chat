@@ -257,6 +257,16 @@ def render_sessions_sidebar() -> None:
         mime="application/json",
         use_container_width=True,
     )
+    if visible_sessions:
+        st.download_button(
+            "Export Filtered JSON",
+            data=export_sessions_json(visible_sessions),
+            file_name="simple-ai-chat-filtered-sessions.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    else:
+        st.caption("Filtered JSON export is unavailable because no chats match.")
 
     uploaded = st.file_uploader("Import JSON", type=["json"])
     if uploaded is not None:
