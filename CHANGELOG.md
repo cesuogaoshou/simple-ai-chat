@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.10 - Session Management Reliability
+
+- Added stable sidebar filter widget keys.
+- Added filtered chat session JSON export.
+- Added batch tag add and remove operations for filtered chats.
+- Added confirmation before deleting the active chat.
+
 ## v1.9 - Session Tags and Notes
 
 - Added local chat session tags.

@@ -9,6 +9,9 @@ A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an
 - JSON session persistence under `.data/`
 - Automatic titles for new chats
 - Pinned sessions, tags, notes, recent-first sorting, and title/message search
+- Filtered JSON export for matching chats
+- Batch tag add/remove for filtered chats
+- Delete confirmation for active chat deletion
 - JSON import/export for individual chats and all sessions
 - Delete the last chat turn
 - Streaming assistant responses
@@ -143,6 +146,9 @@ The sidebar supports:
 - Deleting the last turn from the active chat
 - Exporting the active chat as JSON
 - Exporting all local chats as JSON
+- Exporting filtered chats as JSON
+- Adding or removing a tag across filtered chats
+- Confirming before deleting the active chat
 - Importing chat sessions from JSON
 
 New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list shows pinned chats first, then sorts each group by most recently updated chat first. Pinned state is stored in `.data/chats.json`.
@@ -150,6 +156,10 @@ New chats are automatically titled from the first user prompt unless the chat al
 The `Search chats` box searches chat titles and local message content. Older chat JSON files that do not include pinned state still load and import as unpinned chats.
 
 Chat tags and notes are stored in `.data/chats.json`. Older chat JSON files that do not include tags or notes still load and import with empty metadata.
+
+Filtered JSON export downloads the current search and tag-filter result set using the same session JSON shape as all-session export, so the file can be imported again. Batch tag controls also operate on the current filtered result set.
+
+Deleting the active chat requires selecting `Confirm delete active chat` first. If the last remaining chat is deleted, the app creates a new empty default chat automatically.
 
 Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
 

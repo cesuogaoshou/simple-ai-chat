@@ -87,6 +87,8 @@ def main() -> None:
         st.session_state.session_tag_filter = "All tags"
     if "session_batch_tag" not in st.session_state:
         st.session_state.session_batch_tag = ""
+    if "confirm_delete_active_chat" not in st.session_state:
+        st.session_state.confirm_delete_active_chat = False
 
     config = load_config_for_ui()
     settings = render_sidebar(config)
@@ -271,11 +273,16 @@ def render_sessions_sidebar() -> None:
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
-    if st.button("Delete chat", use_container_width=True):
+    st.checkbox("Confirm delete active chat", key="confirm_delete_active_chat")
+    if st.button(
+        "Delete chat",
+        disabled=not st.session_state.confirm_delete_active_chat,
+        use_container_width=True,
+    ):
         sessions, active_id = delete_session(st.session_state.sessions, active_session().id)
-        st.session_state.sessions = sessions
+        st.session_state.sessions = sort_sessions(sessions)
         st.session_state.active_session_id = active_id
-        st.session_state.sessions = sort_sessions(st.session_state.sessions)
+        st.session_state.confirm_delete_active_chat = False
         save_sessions(SESSION_STORE, st.session_state.sessions)
         st.rerun()
 
