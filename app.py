@@ -31,6 +31,7 @@ from ai_chat.presets import (
 from ai_chat.runtime import detect_runtime
 from ai_chat.sessions import (
     ChatSession,
+    add_tag_to_sessions,
     create_session,
     delete_last_turn,
     delete_session,
@@ -43,6 +44,7 @@ from ai_chat.sessions import (
     load_sessions,
     maybe_auto_title_session,
     normalize_session_tags,
+    remove_tag_from_sessions,
     rename_session,
     save_sessions,
     set_session_pinned,
@@ -83,6 +85,8 @@ def main() -> None:
         st.session_state.session_search_query = ""
     if "session_tag_filter" not in st.session_state:
         st.session_state.session_tag_filter = "All tags"
+    if "session_batch_tag" not in st.session_state:
+        st.session_state.session_batch_tag = ""
 
     config = load_config_for_ui()
     settings = render_sidebar(config)
@@ -184,6 +188,39 @@ def render_sessions_sidebar() -> None:
         tag_filter,
     )
     visible_ids = [session.id for session in visible_sessions]
+    st.caption(f"{len(visible_sessions)} matching chat(s).")
+    batch_tag = st.text_input("Batch tag", key="session_batch_tag")
+    has_batch_tag = bool(normalize_session_tags(batch_tag))
+    can_batch_update = bool(visible_sessions) and has_batch_tag
+    if st.button(
+        "Add tag to filtered chats",
+        disabled=not can_batch_update,
+        use_container_width=True,
+    ):
+        st.session_state.sessions = sort_sessions(
+            add_tag_to_sessions(
+                st.session_state.sessions,
+                set(visible_ids),
+                batch_tag,
+            )
+        )
+        save_sessions(SESSION_STORE, st.session_state.sessions)
+        st.rerun()
+    if st.button(
+        "Remove tag from filtered chats",
+        disabled=not can_batch_update,
+        use_container_width=True,
+    ):
+        st.session_state.sessions = sort_sessions(
+            remove_tag_from_sessions(
+                st.session_state.sessions,
+                set(visible_ids),
+                batch_tag,
+            )
+        )
+        save_sessions(SESSION_STORE, st.session_state.sessions)
+        st.rerun()
+
     if current.id in visible_ids:
         selected_id = st.selectbox(
             "Active chat",
