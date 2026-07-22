@@ -180,6 +180,61 @@ def update_session_note(session: ChatSession, note: str) -> ChatSession:
     )
 
 
+def replace_session_tags(session: ChatSession, tags: list[str]) -> ChatSession:
+    cleaned_tags = clean_tags(tags)
+    if cleaned_tags == session.tags:
+        return session
+    return ChatSession(
+        id=session.id,
+        title=session.title,
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=utc_now(),
+        pinned=session.pinned,
+        tags=cleaned_tags,
+        note=session.note,
+    )
+
+
+def add_tag_to_sessions(
+    sessions: list[ChatSession],
+    session_ids: set[str],
+    tag: str,
+) -> list[ChatSession]:
+    cleaned = clean_tags([tag])
+    if not cleaned or not session_ids:
+        return sessions
+
+    tag_to_add = cleaned[0]
+    return [
+        replace_session_tags(session, [*session.tags, tag_to_add])
+        if session.id in session_ids
+        else session
+        for session in sessions
+    ]
+
+
+def remove_tag_from_sessions(
+    sessions: list[ChatSession],
+    session_ids: set[str],
+    tag: str,
+) -> list[ChatSession]:
+    cleaned = clean_tags([tag])
+    if not cleaned or not session_ids:
+        return sessions
+
+    tag_to_remove = cleaned[0].casefold()
+    return [
+        replace_session_tags(
+            session,
+            [existing for existing in session.tags if existing.casefold() != tag_to_remove],
+        )
+        if session.id in session_ids
+        else session
+        for session in sessions
+    ]
+
+
 def sort_sessions(sessions: list[ChatSession]) -> list[ChatSession]:
     return sorted(
         sessions,

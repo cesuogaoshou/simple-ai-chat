@@ -2,6 +2,7 @@ import json
 
 from ai_chat.sessions import (
     ChatSession,
+    add_tag_to_sessions,
     create_default_session,
     create_session,
     delete_last_turn,
@@ -18,6 +19,7 @@ from ai_chat.sessions import (
     load_sessions,
     maybe_auto_title_session,
     normalize_session_tags,
+    remove_tag_from_sessions,
     rename_session,
     save_sessions,
     search_sessions,
@@ -798,6 +800,84 @@ def test_filter_visible_sessions_returns_all_for_blank_filters():
     second = create_session("Second")
 
     assert filter_visible_sessions([first, second], "   ", "   ") == [first, second]
+
+
+def test_add_tag_to_sessions_adds_tag_to_selected_sessions_only():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["work"],
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["research"],
+    )
+
+    updated = add_tag_to_sessions([first, second], {"first"}, "bug")
+
+    assert updated[0].tags == ["work", "bug"]
+    assert updated[0].updated_at != "2026-07-16T00:00:00Z"
+    assert updated[1] == second
+
+
+def test_add_tag_to_sessions_ignores_blank_and_duplicate_tags():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["Work"],
+    )
+
+    assert add_tag_to_sessions([session], {"session-1"}, "   ") == [session]
+    assert add_tag_to_sessions([session], {"session-1"}, "work") == [session]
+
+
+def test_remove_tag_from_sessions_removes_case_insensitive_tag_from_selected_sessions_only():
+    first = ChatSession(
+        id="first",
+        title="First",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["Work", "bug"],
+    )
+    second = ChatSession(
+        id="second",
+        title="Second",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["Work"],
+    )
+
+    updated = remove_tag_from_sessions([first, second], {"first"}, "work")
+
+    assert updated[0].tags == ["bug"]
+    assert updated[0].updated_at != "2026-07-16T00:00:00Z"
+    assert updated[1] == second
+
+
+def test_remove_tag_from_sessions_ignores_blank_or_missing_tags():
+    session = ChatSession(
+        id="session-1",
+        title="Tagged",
+        messages=[],
+        created_at="2026-07-16T00:00:00Z",
+        updated_at="2026-07-16T00:00:00Z",
+        tags=["work"],
+    )
+
+    assert remove_tag_from_sessions([session], {"session-1"}, "   ") == [session]
+    assert remove_tag_from_sessions([session], {"session-1"}, "missing") == [session]
 
 
 def test_export_sessions_json_round_trips_multiple_sessions():
