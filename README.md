@@ -1,33 +1,60 @@
 # Simple AI Chat
 
-A minimal AI chat app built with Streamlit and the OpenAI Python SDK. It uses an OpenAI-compatible Chat Completions API, defaults to DeepSeek, and can switch to OpenAI through environment variables.
+Simple AI Chat 是一个本地优先的 AI 聊天应用。它提供一个可以直接在浏览器里使用的聊天界面，支持连接 DeepSeek 或 OpenAI 兼容接口，并围绕「多会话管理」「提示词预设」「本地备份」「会话整理」做了完整能力建设。
 
-## Features
+这个项目的目标不是做一个庞大的平台，而是做一个轻量、可运行、可维护、可继续迭代的个人 AI Chat 工具。
 
-- Local web chat UI
-- Local multi-session management
-- JSON session persistence under `.data/`
-- Automatic titles for new chats
-- Pinned sessions, tags, notes, recent-first sorting, and title/message search
-- Filtered JSON export for matching chats
-- Batch tag add/remove for filtered chats
-- Delete confirmation for active chat deletion
-- JSON import/export for individual chats and all sessions
-- Delete the last chat turn
-- Streaming assistant responses
-- Built-in prompt presets, saved custom presets, and custom system prompts
-- Configurable DeepSeek / OpenAI provider
-- Sidebar controls for `temperature` and `max_tokens`
-- Markdown export for the current chat
-- Streamlit Cloud deployment configuration
-- Safe runtime diagnostics for local and Streamlit Cloud runs
-- `.env` based API key, base URL, and model configuration
-- Basic error messages without exposing secrets
-- Unit tests for provider configuration, message construction, streaming helpers, and export formatting
+## 项目已经完成了什么
 
-## Quick Start
+项目目前已经从最基础的单轮聊天，迭代到了一个具备本地会话库能力的 AI 聊天应用。
 
-Run these commands in Windows PowerShell:
+已经实现的主要成果包括：
+
+- 搭建了 Streamlit Web 聊天界面，可以在本地浏览器中使用。
+- 接入 OpenAI-compatible Chat Completions API，默认支持 DeepSeek，也支持切换到 OpenAI。
+- 实现流式回复，让模型输出可以边生成边展示。
+- 实现本地多会话管理，不同聊天可以独立保存、切换和整理。
+- 实现本地 JSON 持久化，会话记录保存在 `.data/` 目录下。
+- 支持自动会话标题，根据第一条用户消息生成新聊天标题。
+- 支持会话置顶，让重要聊天保持在列表前面。
+- 支持按标题和消息内容搜索历史聊天。
+- 支持会话标签和备注，用于给聊天分类、补充背景说明。
+- 支持按标签筛选会话。
+- 支持对筛选结果批量添加或移除标签。
+- 支持导出当前会话、全部会话和筛选结果。
+- 支持从 JSON 导入会话，方便备份和迁移。
+- 支持 Markdown 导出当前聊天，方便阅读和分享。
+- 支持内置提示词预设和自定义提示词预设。
+- 支持调整生成参数，如温度和最大输出长度。
+- 支持删除最后一轮对话。
+- 删除当前聊天前需要确认，降低误操作风险。
+- 配置了基础测试、代码检查和 GitHub Actions CI。
+
+## 功能亮点
+
+### 本地优先
+
+聊天记录、提示词预设和会话元数据都优先保存在本地。项目适合个人使用、原型验证、学习 AI Chat 应用结构，也适合作为后续扩展的基础版本。
+
+### 多会话会话库
+
+应用不只是一个单页聊天窗口，还提供了本地会话库。用户可以创建多个聊天，搜索历史内容，置顶重要会话，用标签和备注管理不同主题。
+
+### 可整理、可备份
+
+会话可以按标签筛选，也可以把筛选后的结果单独导出。这样既能完整备份全部聊天，也能只导出某一类项目、主题或工作流相关的会话。
+
+### 提示词预设
+
+应用内置了常见使用场景的提示词预设，也允许用户保存自己的自定义系统提示词。这样可以在翻译、代码解释、需求分析、写作润色等场景之间快速切换。
+
+### 工程化基础
+
+项目包含单元测试、编译检查、Ruff 代码检查和 GitHub Actions CI。核心逻辑被拆分到 `ai_chat/` 模块中，便于继续维护和迭代。
+
+## 快速启动
+
+在 Windows PowerShell 中执行：
 
 ```powershell
 python -m venv .venv
@@ -35,196 +62,56 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and fill in the API key for the provider you want to use.
+编辑 `.env`，填入你要使用的模型服务 API Key。
 
-Start the app:
+启动应用：
 
 ```powershell
 .\.venv\Scripts\streamlit.exe run app.py
 ```
 
-Streamlit usually opens the browser automatically. If it does not, open the Local URL shown in the terminal, usually:
+启动后通常会自动打开浏览器。如果没有自动打开，可以访问终端中显示的本地地址，通常是：
 
 ```text
 http://localhost:8501
 ```
 
-## DeepSeek Configuration
+## 基本配置
 
-The project defaults to DeepSeek:
+默认使用 DeepSeek：
 
 ```env
 AI_PROVIDER=deepseek
-
 DEEPSEEK_API_KEY=your_deepseek_api_key
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-v4-pro
 ```
 
-DeepSeek is compatible with the OpenAI Chat Completions API shape, but it requires a DeepSeek API key, base URL, and model name.
-
-## OpenAI Configuration
-
-To switch to OpenAI:
+切换到 OpenAI：
 
 ```env
 AI_PROVIDER=openai
-
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-5.6
 ```
 
-## Environment Variables
+也可以在 `.env` 中配置对应的 Base URL 和模型名称。
 
-| Variable | Description |
-| --- | --- |
-| `AI_PROVIDER` | Current provider. Supported values: `deepseek`, `openai` |
-| `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `DEEPSEEK_BASE_URL` | DeepSeek API base URL. Default: `https://api.deepseek.com` |
-| `DEEPSEEK_MODEL` | DeepSeek model name. Default: `deepseek-v4-pro` |
-| `OPENAI_API_KEY` | OpenAI API key |
-| `OPENAI_BASE_URL` | OpenAI API base URL. Default: `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | OpenAI model name. Default: `gpt-5.6` |
-
-The sidebar shows whether the active provider API key is configured. It never displays the key value or a masked key fragment.
-
-## Prompt Presets
-
-The sidebar includes built-in prompt presets for common workflows:
-
-- `General Assistant`
-- `Translator`
-- `Code Explainer`
-- `Requirement Analyst`
-- `Writing Polish`
-
-The selected preset controls the system prompt sent with future model requests. You can also enable `Use custom system prompt` and enter a one-off custom instruction.
-
-Custom prompts can be saved as named custom presets from the sidebar. Saved custom presets are stored locally in `.data/presets.json`, which is ignored by Git. Custom presets are not stored in `.data/chats.json`, so chat session import/export keeps the same shape as earlier versions.
-
-## Generation Settings
-
-The sidebar controls generation settings for the next user message:
-
-| Setting | Default | Description |
-| --- | --- | --- |
-| `temperature` | `0.7` | Controls randomness. Lower is more stable; higher is more varied. |
-| `max_tokens` | `1024` | Controls the maximum output length for one assistant response. |
-
-Changing a setting affects the next request.
-
-The app validates these settings in code as well as in the UI. `temperature` must be between `0.0` and `2.0`; `max_tokens` must be between `128` and `8192`.
-
-## Export Conversation
-
-When the current session has at least one message, the sidebar shows a `Download Markdown` button. It downloads the current browser session conversation as Markdown.
-
-The export includes:
-
-- Provider
-- Model
-- User messages
-- Assistant replies
-
-Markdown export is intended for readable sharing. JSON export in the Sessions sidebar is intended for backup and re-import.
-
-## Local Sessions
-
-The app stores local chat sessions in `.data/chats.json`. The `.data/` directory is ignored by Git so private chat history is not committed.
-
-The sidebar supports:
-
-- Creating a new chat
-- Switching chats
-- Searching chats by title and message content
-- Editing chat tags and notes
-- Filtering chats by tag
-- Pinning important chats above regular chats
-- Renaming the active chat
-- Deleting the active chat
-- Deleting the last turn from the active chat
-- Exporting the active chat as JSON
-- Exporting all local chats as JSON
-- Exporting filtered chats as JSON
-- Adding or removing a tag across filtered chats
-- Confirming before deleting the active chat
-- Importing chat sessions from JSON
-
-New chats are automatically titled from the first user prompt unless the chat already has a custom title. The session list shows pinned chats first, then sorts each group by most recently updated chat first. Pinned state is stored in `.data/chats.json`.
-
-The `Search chats` box searches chat titles and local message content. Older chat JSON files that do not include pinned state still load and import as unpinned chats.
-
-Chat tags and notes are stored in `.data/chats.json`. Older chat JSON files that do not include tags or notes still load and import with empty metadata.
-
-Filtered JSON export downloads the current search and tag-filter result set using the same session JSON shape as all-session export, so the file can be imported again. Batch tag controls also operate on the current filtered result set.
-
-Deleting the active chat requires selecting `Confirm delete active chat` first. If the last remaining chat is deleted, the app creates a new empty default chat automatically.
-
-Markdown export remains available for human-readable sharing. JSON export is intended for backup and re-import.
-
-## Deployment
-
-### Streamlit Cloud
-
-1. Push this repository to GitHub.
-2. Create a new app in Streamlit Cloud.
-3. Select this repository and set the main file path to `app.py`.
-4. Add secrets in Streamlit Cloud using the values from `.streamlit/secrets.toml.example`.
-5. Set `AI_PROVIDER` to `deepseek` or `openai`.
-6. Deploy the app.
-
-Do not commit `.env` or `.streamlit/secrets.toml`. The repository includes `.streamlit/secrets.toml.example` only as a template.
-
-### Streamlit Secrets Example
-
-```toml
-AI_PROVIDER = "deepseek"
-DEEPSEEK_API_KEY = "your_deepseek_api_key"
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_MODEL = "deepseek-v4-pro"
-```
-
-## Project Structure
+## 项目结构
 
 ```text
 .
-|-- ai_chat/
-|   |-- chat.py              # Chat Completions helpers and export formatting
-|   |-- config.py            # Provider configuration parsing
-|   |-- preset_store.py      # Local custom prompt preset storage helpers
-|   |-- presets.py           # Built-in prompt presets and prompt resolution
-|   |-- runtime.py           # Runtime environment detection
-|   `-- sessions.py          # Local chat session storage helpers
-|-- .streamlit/
-|   |-- config.toml
-|   `-- secrets.toml.example
-|-- docs/
-|   |-- design.md
-|   |-- implementation-plan.md
-|   `-- superpowers/
-|-- tests/
-|   |-- test_chat.py
-|   |-- test_config.py
-|   |-- test_runtime.py
-|   `-- test_sessions.py
-|-- .env.example
-|-- .gitignore
-|-- app.py                   # Streamlit app entry point
+|-- ai_chat/                 # 聊天、配置、预设、会话等核心逻辑
+|-- docs/                    # 设计文档、执行计划和版本演进记录
+|-- tests/                   # 单元测试
+|-- .streamlit/              # Streamlit 配置示例
+|-- app.py                   # Streamlit 应用入口
 |-- README.md
-`-- requirements.txt
+|-- CHANGELOG.md
+|-- requirements.txt
+`-- pyproject.toml
 ```
 
-## Run Tests
+## 质量检查
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m compileall app.py ai_chat
-```
-
-## Quality Checks
-
-Run the same checks locally that CI runs on GitHub:
+本地可以运行：
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
@@ -232,50 +119,27 @@ Run the same checks locally that CI runs on GitHub:
 .\.venv\Scripts\python.exe -m ruff check .
 ```
 
-The GitHub Actions workflow runs these checks on pushes and pull requests to `main`.
+GitHub Actions 会在推送和 Pull Request 时执行同类检查。
 
-## Troubleshooting
+## 后续可以怎么迭代
 
-### The page says the API key is missing
+这个项目已经具备一个本地 AI Chat 工具的完整基础，后续可以继续沿几个方向增强：
 
-Make sure `.env.example` has been copied to `.env`, then fill in the API key for the selected provider.
+- **聊天编辑体验**：支持编辑上一条用户消息、重新生成回复、复制回复。
+- **提示词库增强**：支持导入/导出提示词预设、编辑已保存预设、给预设分类。
+- **本地数据安全**：增加自动备份、导入前预览、删除撤销、本地加密选项。
+- **Provider 配置管理**：支持保存多个常用模型配置，在不同服务和模型之间快速切换。
+- **会话整理能力**：继续增强标签、筛选、批量操作和归档能力。
+- **部署体验**：继续完善 Streamlit Cloud 或其他轻量部署方式的说明和配置。
 
-For `AI_PROVIDER=deepseek`, set:
+## 适合用来做什么
 
-```env
-DEEPSEEK_API_KEY=your_deepseek_api_key
-```
+- 作为个人本地 AI Chat 工具。
+- 作为 Streamlit + OpenAI-compatible API 的学习项目。
+- 作为多会话 AI 应用的基础模板。
+- 作为后续扩展 RAG、文件上传、账号系统或云同步能力的起点。
 
-For `AI_PROVIDER=openai`, set:
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-```
-
-### Switch providers
-
-Change `AI_PROVIDER` in `.env`, then restart Streamlit:
-
-```env
-AI_PROVIDER=openai
-```
-
-or:
-
-```env
-AI_PROVIDER=deepseek
-```
-
-### Model requests fail
-
-Check these first:
-
-- API key is valid
-- Model name exists for the selected provider
-- Base URL is correct
-- Network can reach the selected provider
-
-## GitHub
+## 仓库
 
 ```text
 https://github.com/cesuogaoshou/simple-ai-chat
